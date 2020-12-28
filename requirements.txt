@@ -1,0 +1,7 @@
+pymongo
+pyjwt
+flask
+flask_restful
+pika
+bson
+dnspython
