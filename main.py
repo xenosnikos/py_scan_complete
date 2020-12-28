@@ -22,4 +22,4 @@ api.add_resource(port_scan_result.PortScanResult, "/portscan/result")
 api.add_resource(history.PortScanHistory, "/portscan/history")
 
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(host='0.0.0.0')

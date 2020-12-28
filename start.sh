@@ -1,4 +1,5 @@
 #!/bin/bash
-app="docker.test"
-docker build -t ${app} .
-docker run -d -p 80:80 -e VARIABLE_NAME="app" ${app} -v $PWD:/app ${app}
+docker build -t underdarq .
+docker run -d -p 56733:80 \
+  --name=underdarq \
+  -v $PWD:/app underdarq

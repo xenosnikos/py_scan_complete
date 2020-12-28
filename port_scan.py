@@ -13,7 +13,7 @@ portscan_args = reqparse.RequestParser()
 portscan_args.add_argument('ip', help='IP is required to port scan')
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost', heartbeat=900))
+    pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
 channel = connection.channel()
 
 channel.queue_declare(queue='scan_queue', durable=True)

@@ -9,7 +9,7 @@ client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost', heartbeat=900))
+    pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
 channel = connection.channel()
 
 channel.queue_declare(queue='scan_queue', durable=True)
@@ -24,9 +24,7 @@ ip = None
 
 def portscan(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print('countp', ip, port)
     try:
-        print('countp2', ip, port)
         conx = s.connect((ip, port))
         ports.append(port)
         with print_lock:
@@ -54,7 +52,6 @@ def callback(ch, method, properties, body):
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'status': 'running'}})
 
     for x in range(333):
-        print(x)
         t = threading.Thread(target=threader)
         t.start()
 
@@ -62,7 +59,6 @@ def callback(ch, method, properties, body):
         q.put(worker)
 
     q.join()
-    print(f'Open ports: {ports}')
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'status': 'finished', 'openPorts': ports}})
     print(" [x] Done")
     ch.basic_ack(delivery_tag=method.delivery_tag)
