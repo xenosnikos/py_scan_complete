@@ -35,6 +35,8 @@ class AuthLogin(Resource):
 
         secret_key = open('secret_key.txt').read()
 
+        db.users.create_index('username')
+
         user = db.users.find_one({'username': username}, {'_id': 0, 'salt': 1, 'key': 1})
 
         if user is None:
@@ -107,6 +109,8 @@ class AuthSignup(Resource):
 
         username = user_pass.split(':')[0]
         password = user_pass.split(':')[1]
+
+        db.users.create_index('username')
 
         user = db.users.find_one({'username': username})
 

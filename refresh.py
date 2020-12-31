@@ -21,8 +21,12 @@ class AuthRefresh(Resource):
         if token == 'Invalid token':
             return invalid, 401
 
+        db.users.create_index('token')
+
         if db.black_list_token.find_one({'token': token}) is not None:
             return invalid, 401
+
+        db.users.create_index('refreshToken')
 
         ref = db.refreshTokens.find_one({'refreshToken': arg2}, {'_id': 0, 'timeStamp': 1})
 

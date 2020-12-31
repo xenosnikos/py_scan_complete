@@ -22,6 +22,8 @@ class PortScanHistory(Resource):
             return auth
         args = portscan_args.parse_args()
         ip = socket.gethostbyname(args['ip'])
+
+        db.users.create_index('ip')
         item = db.scans.find({'ip': ip})
 
         if item is None:
