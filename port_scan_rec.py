@@ -48,7 +48,7 @@ def callback(ch, method, properties, body):
     json_loaded = json_util.loads(body)
     global ip
     ip = json_loaded['ip']
-    item_id = json_loaded['_id']
+    item_id = json_loaded['scan_id']
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'status': 'running'}})
 
     for x in range(333):

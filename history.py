@@ -4,12 +4,13 @@ from bson import json_util
 import json
 import pymongo
 import verify
+import validators
 
 client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
 
 portscan_args = reqparse.RequestParser()
-portscan_args.add_argument('ip', help='IP is required to lookup history')
+portscan_args.add_argument('value', help='IP or Domain is required to lookup history')
 
 
 class PortScanHistory(Resource):
@@ -21,21 +22,84 @@ class PortScanHistory(Resource):
             print(auth)
             return auth
         args = portscan_args.parse_args()
-        ip = socket.gethostbyname(args['ip'])
+        ip = socket.gethostbyname(args['value'])
 
-        db.users.create_index('ip')
-        item = db.scans.find({'ip': ip})
+        if not (validators.domain(args['value']) or validators.ip_address.ipv4(ip)):
+            print(validators.domain(args['value']))
+            return {
+                'message': f"{args['value']} is not a valid IP or Domain, please try again"
+                   }, 400
+
+        limit = 10
+        offset = 0
+
+        if 'limit' in args and args['limit'] is not None and args['limit'] != '':
+            limit = int(args['limit'])
+
+        if 'offset' in args and args['offset'] is not None and args['offset'] != '':
+            offset = int(args['offset'])
+
+        if validators.domain(args['value']):
+            db.scans.create_index('value')
+            item = list(db.scans.find({'value': args['value']}))[offset:offset + limit:1]
+            total = len(item)
+        else:
+            db.scans.create_index('ip')
+            item = list(db.scans.find({'ip': ip}))[offset:offset + limit:1]
+            total = len(item)
 
         if item is None:
             return {
-                       'message': f'IP address {ip} not found in the history'
+                'message': f"{args['value']} not found in the history"
                    }, 404
 
-        result = []
+        if offset == 0:
+            page = 1
+        else:
+            page = int(offset / limit) + 1
+
+        next_page = page + 1
+        next_offset = offset + limit
+        previous_offset = offset - limit
+        last_page = int(total / limit) + 1
+        last_offset = int(total / limit) * limit
+
+        meta = {
+            "current page": page,
+            "next page": next_page,
+            "last page": last_page,
+            "per page": limit,
+            "total": total
+        }
+
+        links = {
+            "first page": f"?limit={limit}&offset={0}",
+            "previous page": f"?limit={limit}&offset={previous_offset}",
+            "next page": f"?limit={limit}&offset={next_offset}",
+            "last page": f"?limit={limit}&offset={last_offset}"
+        }
+
+        if offset == 0:
+            links.pop('first page')
+            links.pop('previous page')
+
+        if total <= limit:
+            links.pop('next page')
+            links.pop('last page')
+            meta.pop('next page')
+            meta.pop('last page')
+
+        result = [
+            meta
+        ]
+
+        if limit < total:
+            result.append(links)
 
         for each in item:
             each['timeStamp'] = each['timeStamp'].strftime("%m/%d/%Y, %H:%M:%S") + ' UTC'
-            each['_id'] = str(each['_id'])
+            each['scan_id'] = str(each['_id'])
+            each.pop('_id')
             result.append(json.loads(json_util.dumps(each)))
 
         return result

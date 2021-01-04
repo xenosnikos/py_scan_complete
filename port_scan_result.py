@@ -7,7 +7,7 @@ client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
 
 portscan_args = reqparse.RequestParser()
-portscan_args.add_argument('id', help='ID is required to lookup historical port scans')
+portscan_args.add_argument('scan_id', help='Scan ID is required to lookup port scan results', required=True)
 
 
 class PortScanResult(Resource):
@@ -19,17 +19,19 @@ class PortScanResult(Resource):
             print(auth)
             return auth
         args = portscan_args.parse_args()
-        item_id = args['id']
+        item_id = args['scan_id']
         item = db.scans.find_one({"_id": ObjectId(item_id)})
 
         if item is None:
             return{
-                'message': 'Provided ID does not match with any historical port scans'
+                'message': 'Provided scan ID does not match with any port scans'
             }, 404
 
         if item['status'] != 'finished':
+            # add timeStamp added and the value/ip and please checkback time from 15 avg minutes
             return {
-                'message': f'Item added to queue and is in {item["status"]} status, please wait and try again'
+                'message': f'Item added to queue at {item["timeStamp"].strftime("%m/%d/%Y, %H:%M:%S")} UTC and is in {item["status"]} status, '
+                           f'please try again in the next 15 minutes'
             }, 202
 
         return {
