@@ -1,4 +1,4 @@
-#!/home/san/Documents/repos/port_scanning/myvenv/bin/python
+#!/home/san/Documents/repos/port_scanning/myvenv/pshtt/python
 
 # Author:
 # Contact: grubert@users.sf.net

@@ -1,4 +1,4 @@
-#!/home/san/Documents/repos/port_scanning/myvenv/bin/python
+#!/home/san/Documents/repos/port_scanning/myvenv/pshtt/python
 
 # $Id: rst2pseudoxml.py 4564 2006-05-21 20:44:42Z wiemann $
 # Author: David Goodger <goodger@python.org>

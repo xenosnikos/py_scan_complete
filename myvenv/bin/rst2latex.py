@@ -1,4 +1,4 @@
-#!/home/san/Documents/repos/port_scanning/myvenv/bin/python
+#!/home/san/Documents/repos/port_scanning/myvenv/pshtt/python
 
 # $Id: rst2latex.py 5905 2009-04-16 12:04:49Z milde $
 # Author: David Goodger <goodger@python.org>
