@@ -16,6 +16,8 @@ portscan_args.add_argument('value', help='Domain or IP is required to port scan'
 
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
+# heartbeat is set to 0 because of an existing bug with RabbitMQ & Pika, stopping heartbeats will cause message loss if
+# receiver goes down https://github.com/albertomr86/python-logging-rabbitmq/issues/17
 channel = connection.channel()
 
 channel.queue_declare(queue='scan_queue', durable=True)
