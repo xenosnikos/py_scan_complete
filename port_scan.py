@@ -19,9 +19,10 @@ connection = pika.BlockingConnection(
 # heartbeat is set to 0 because of an existing bug with RabbitMQ & Pika, stopping heartbeats will cause message loss if
 # receiver goes down https://github.com/albertomr86/python-logging-rabbitmq/issues/17
 channel = connection.channel()
+channel2 = connection.channel()
 
 channel.queue_declare(queue='scan_queue', durable=True)
-channel.queue_declare(queue='sslyze_queue', durable=True)
+channel2.queue_declare(queue='sslyze_queue', durable=True)
 
 
 class PortScan(Resource):
@@ -69,7 +70,7 @@ class PortScan(Resource):
                         delivery_mode=2,  # make message persistent
                     ))
 
-                channel.basic_publish(
+                channel2.basic_publish(
                     exchange='',
                     routing_key='sslyze_queue',
                     body=json_util.dumps(message_sslyze),
