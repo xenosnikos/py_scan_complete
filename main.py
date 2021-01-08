@@ -1,9 +1,9 @@
 from flask import Flask
 from flask_restful import Api
+from port_scan import PortScan
 
 import auth
 import history
-import port_scan
 import port_scan_result
 import refresh
 import verify
@@ -19,7 +19,7 @@ api.add_resource(verify.AuthVerify, '/verify')
 api.add_resource(auth.AuthLogout, "/logout")
 api.add_resource(auth.AuthSignup, "/signup")
 api.add_resource(refresh.AuthRefresh, '/refresh')
-api.add_resource(port_scan.PortScan, "/portscan")
+api.add_resource(PortScan, "/portscan")
 api.add_resource(port_scan_result.PortScanResult, "/portscan/result")
 api.add_resource(history.PortScanHistory, "/portscan/history")
 

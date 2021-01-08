@@ -19,6 +19,7 @@ connection = pika.BlockingConnection(
 channel = connection.channel()
 
 channel.queue_declare(queue='scan_queue', durable=True)
+channel.queue_declare(queue='sslyze_queue', durable=True)
 
 
 class PortScan(Resource):
@@ -52,6 +53,12 @@ class PortScan(Resource):
                     'ip': ip
                 }
 
+                message_sslyze = {
+                    'scan_id': str(item),
+                    'ip': ip,
+                    'value': val
+                }
+
                 channel.basic_publish(
                     exchange='',
                     routing_key='scan_queue',
@@ -59,7 +66,17 @@ class PortScan(Resource):
                     properties=pika.BasicProperties(
                         delivery_mode=2,  # make message persistent
                     ))
-                print(" [x] Sent %r" % message)
+
+                channel.basic_publish(
+                    exchange='',
+                    routing_key='sslyze_queue',
+                    body=json_util.dumps(message_sslyze),
+                    properties=pika.BasicProperties(
+                        delivery_mode=2,  # make message persistent
+                    ))
+
+                print(" [x] Sent Scan %r" % message)
+                print(" [x] Sent SSLYZE %r" % message)
             else:
                 return {
                     'message': f'{val} is not a valid IP or Domain, please try again'
