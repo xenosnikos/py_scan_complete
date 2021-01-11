@@ -4,6 +4,8 @@ import socket, threading
 from queue import Queue
 import pika
 import pymongo
+import json
+
 
 client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
@@ -24,10 +26,19 @@ countp = 0
 ip = None
 
 
+def portcheck(port):
+    f=open("data/ports.json", "r")
+    portlist = json.load(f)
+    f.close()
+    print(portlist)
+
+
+
 def portscan(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         conx = s.connect((ip, port))
+        portcheck(port)
         ports.append(port)
         with print_lock:
             print(port, 'is open')

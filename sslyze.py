@@ -69,5 +69,5 @@ def callback(ch, method, properties, body):
 
 q = Queue()
 channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue='scan_queue', on_message_callback=callback)
+channel.basic_consume(queue='sslyze_queue', on_message_callback=callback)
 channel.start_consuming()
