@@ -26,19 +26,10 @@ countp = 0
 ip = None
 
 
-def portcheck(port):
-    f=open("data/ports.json", "r")
-    portlist = json.load(f)
-    f.close()
-    print(portlist)
-
-
-
 def portscan(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         conx = s.connect((ip, port))
-        portcheck(port)
         ports.append(port)
         with print_lock:
             print(port, 'is open')
@@ -72,7 +63,10 @@ def callback(ch, method, properties, body):
         q.put(worker)
 
     q.join()
-    db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'status': 'finished', 'openPorts': ports}})
+    obj = {}
+    for each in ports:
+        obj[each] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
+    db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'status': 'finished', 'openPorts': obj}})
     print(" [x] Done")
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
