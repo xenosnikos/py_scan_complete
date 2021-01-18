@@ -5,3 +5,4 @@ flask_restful
 pika
 dnspython
 validators
+sslyze

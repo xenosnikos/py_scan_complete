@@ -2,6 +2,8 @@ from flask_restful import Resource, reqparse, request
 from bson.objectid import ObjectId
 import pymongo
 import verify
+from bson import json_util
+import json
 
 client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
@@ -28,7 +30,7 @@ class PortScanResult(Resource):
             }, 404
 
         if item['status'] != 'finished':
-            # add timeStamp added and the value/ip and please checkback time from 15 avg minutes
+            # add timeStamp added and the value/ip and please checkbox time from 15 avg minutes
             return {
                 'message': f'Item added to queue at {item["timeStamp"].strftime("%m/%d/%Y, %H:%M:%S")} UTC and is in {item["status"]} status, '
                            f'please try again in the next 15 minutes'
@@ -36,8 +38,10 @@ class PortScanResult(Resource):
 
         return {
             'id': item_id,
+            'value': item['value'],
             'ip': item['ip'],
             'status': item['status'],
             'timeStamp': item['timeStamp'].strftime("%m/%d/%Y, %H:%M:%S") + ' UTC',
-            'openPorts': item['openPorts']
+            'openPorts': item['openPorts'],
+            'SSL/TLS test results': item['SSL/TLSTestResults']
         }, 200

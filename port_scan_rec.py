@@ -65,7 +65,7 @@ def callback(ch, method, properties, body):
     q.join()
     obj = {}
     for each in ports:
-        obj[each] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
+        obj[str(each)] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'status': 'finished', 'openPorts': obj}})
     print(" [x] Done")
     ch.basic_ack(delivery_tag=method.delivery_tag)

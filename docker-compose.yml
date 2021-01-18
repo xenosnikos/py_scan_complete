@@ -25,3 +25,11 @@ services:
       - rabbitmq
     working_dir: /app
     command: port_scan_rec.py
+
+  consumer2:
+    build: .
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    working_dir: /app
+    command: sslyze_rec.py

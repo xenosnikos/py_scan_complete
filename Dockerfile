@@ -6,6 +6,7 @@ ADD history.py /app/history.py
 ADD main.py /app/main.py
 ADD port_scan.py /app/port_scan.py
 ADD port_scan_rec.py /app/port_scan_rec.py
+ADD sslyze_rec.py /app/sslyze_rec.py
 ADD port_scan_result.py /app/port_scan_result.py
 ADD refresh.py /app/refresh.py
 ADD verify.py /app/verify.py
