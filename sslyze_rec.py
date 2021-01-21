@@ -51,34 +51,35 @@ def ssl_checks(value):
     )
     scanner.queue_scan(server_scan_req)
     obj = dict()
-    time.sleep(300)
+    time.sleep(120)
     for server_scan_result in scanner.get_results():
         print(f"\nResults for {server_scan_result.server_info.server_location.hostname}:")
+        print(server_scan_result.scan_commands_results)
 
         # Certificate info results
-        certinfo_result = server_scan_result.scan_commands_results[sslyze.ScanCommand.CERTIFICATE_INFO]
-        obj['certificate'] = {
-            'certificateValidityStart': certinfo_result.certificate_deployments[0].verified_certificate_chain[
-                0].not_valid_before.strftime('%m/%d/%Y, %H:%M:%S'),
-            'certificateExpiry': certinfo_result.certificate_deployments[0].verified_certificate_chain[
-                0].not_valid_after.strftime('%m/%d/%Y, %H:%M:%S'),
-            'hostnameMatchesCertificate': certinfo_result.certificate_deployments[
-                0].leaf_certificate_subject_matches_hostname
-        }
-        print("\nCertificate info:")
-        for cert_deployment in certinfo_result.certificate_deployments:
-            print(f"Leaf certificate: \n{cert_deployment.received_certificate_chain_as_pem[0]}")
+        try:
+            certinfo_result = server_scan_result.scan_commands_results['certificate_info']
+            obj['certificate'] = {
+                'certificateValidityStart': certinfo_result.certificate_deployments[0].verified_certificate_chain[
+                    0].not_valid_before.strftime('%m/%d/%Y, %H:%M:%S'),
+                'certificateExpiry': certinfo_result.certificate_deployments[0].verified_certificate_chain[
+                    0].not_valid_after.strftime('%m/%d/%Y, %H:%M:%S'),
+                'hostnameMatchesCertificate': certinfo_result.certificate_deployments[
+                    0].leaf_certificate_subject_matches_hostname
+            }
+        except KeyError:
+            print('Certificate Info not found in ', server_scan_result.scan_commands_results['certificate_info'])
 
         # SSL 2.0 results
-        ssl2_result = server_scan_result.scan_commands_results[sslyze.ScanCommand.SSL_2_0_CIPHER_SUITES]
-        obj['ssl2.0'] = {'ssl2.0CipherSuitesAccepted': len(ssl2_result.accepted_cipher_suites),
-                         'ssl2.0CipherSuitesRejected': len(ssl2_result.rejected_cipher_suites),
-                         'description': 'SSL 2.0 is a version of the SSL/TLS security protocols. It was released in '
-                                        'February 1995, but due to security flaws was superseded by SSL 3.0 in 1996',
-                         'deprecation': 2011}
-        print("\nAccepted cipher suites for SSL 2.0:")
-        for accepted_cipher_suite in ssl2_result.accepted_cipher_suites:
-            print(f"* {accepted_cipher_suite.cipher_suite.name}")
+        try:
+            ssl2_result = server_scan_result.scan_commands_results['ssl_2_0_cipher_suites']
+            obj['ssl2.0'] = {'ssl2.0CipherSuitesAccepted': len(ssl2_result.accepted_cipher_suites),
+                             'ssl2.0CipherSuitesRejected': len(ssl2_result.rejected_cipher_suites),
+                             'description': 'SSL 2.0 is a version of the SSL/TLS security protocols. It was released in '
+                                            'February 1995, but due to security flaws was superseded by SSL 3.0 in 1996',
+                             'deprecation': 2011}
+        except KeyError:
+            print("SSL 2.0 not found in ", server_scan_result.scan_commands_results['ssl_2_0_cipher_suites'])
 
         # SSL 3.0 results
         ssl3_result = server_scan_result.scan_commands_results[sslyze.ScanCommand.SSL_3_0_CIPHER_SUITES]
@@ -219,15 +220,10 @@ def ssl_checks(value):
             sslyze.ScanCommand.SESSION_RENEGOTIATION]
         obj['sessionRenegotiationResult'] = {
             'supportsSecureRenegotiation': session_renegotiation_result.supports_secure_renegotiation,
-            'supportsClient-initiatedRenegotiation': session_renegotiation_result.accepts_client_renegotiation,
             'description': 'Starting a new handshake negotiation inside of an existing secure session is called '
                            'renegotiation. The application layer might not be aware that a secure session is '
                            'renegotiated at the request of a peer '
         }
-        print("\nSupports secure renegotiation:")
-        print(f"* {session_renegotiation_result.supports_secure_renegotiation}")
-        print("\nSupports client-initiated renegotiation:")
-        print(f"* {session_renegotiation_result.accepts_client_renegotiation}")
 
         # Session Resumption
         session_resumption_result = server_scan_result.scan_commands_results[sslyze.ScanCommand.SESSION_RESUMPTION]
