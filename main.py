@@ -7,8 +7,7 @@ import history
 import port_scan_result
 import refresh
 import verify
-
-# U652JqPlfdYFdwDp
+import queue_status
 
 
 app = Flask(__name__)
@@ -22,6 +21,7 @@ api.add_resource(refresh.AuthRefresh, '/refresh')
 api.add_resource(PortScan, "/portscan")
 api.add_resource(port_scan_result.PortScanResult, "/portscan/result")
 api.add_resource(history.PortScanHistory, "/portscan/history")
+api.add_resource(queue_status.QueueStatus, "/queue/status/conf")
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')

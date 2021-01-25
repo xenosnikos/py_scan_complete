@@ -37,7 +37,7 @@ class AuthLogin(Resource):
 
         db.users.create_index('username')
 
-        user = db.users.find_one({'username': username}, {'_id': 0, 'salt': 1, 'key': 1})
+        user = db.users.find_one({'username': username}, {'salt': 1, 'key': 1})
 
         if user is None:
             return {
@@ -51,7 +51,8 @@ class AuthLogin(Resource):
                 'message': 'Username and password combination not found'
             }
 
-        access_token = jwt.encode({'username': username, 'iss': 'portscanner.com', 'exp': time() + 3600}, secret_key, algorithm='HS256')
+        access_token = jwt.encode({'username': username, 'iss': 'portscanner.com', 'user_id': f"{str(user['_id'])}",
+                                   'exp': time() + 3600}, secret_key, algorithm='HS256')
         refresh_token = jwt.encode({'username': username, 'exp': time() + 86400}, secret_key, algorithm='HS256')
         db.refreshTokens.insert_one({'user': username, 'refreshToken': refresh_token, 'timeStamp': datetime.utcnow()})
 

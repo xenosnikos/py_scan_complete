@@ -10,19 +10,19 @@ import validators
 client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
 
-portscan_args = reqparse.RequestParser()
-# change ip to value
-portscan_args.add_argument('value', help='Domain or IP is required to port scan', required=True, action='append')
-
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
-# heartbeat is set to 0 because of an existing bug with RabbitMQ & Pika, stopping heartbeats will cause message loss if
-# receiver goes down https://github.com/albertomr86/python-logging-rabbitmq/issues/17
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0, channel_max=2))
+# heartbeat is set to 0 because of an existing bug with RabbitMQ & Pika, stopping heartbeats will
+# cause message loss if receiver goes down
+# https://github.com/albertomr86/python-logging-rabbitmq/issues/17
 channel = connection.channel()
 channel2 = connection.channel()
 
 channel.queue_declare(queue='scan_queue', durable=True)
 channel2.queue_declare(queue='sslyze_queue', durable=True)
+
+portscan_args = reqparse.RequestParser()
+# change ip to value
+portscan_args.add_argument('value', help='Domain or IP is required to port scan', required=True, action='append')
 
 
 class PortScan(Resource):
@@ -45,8 +45,10 @@ class PortScan(Resource):
             if validators.domain(val) or validators.ip_address.ipv4(val):
                 ip = socket.gethostbyname(val)
                 # add the actual value in(URL)
+                print(auth)
                 item = db.scans.insert_one(
-                    {'ip': ip, 'value': val, 'status': 'queued', "timeStamp": datetime.utcnow()}).inserted_id
+                    {'user_id': auth[0]['user_id'], 'ip': ip, 'value': val, 'portScanStatus': 'queued',
+                     'portScanPercentage': 0, 'sslScanStatus': 'queued', "timeStamp": datetime.utcnow()}).inserted_id
                 list_ips.append(ip)
                 list_value.append(val)
                 mongo_id.append(str(item))

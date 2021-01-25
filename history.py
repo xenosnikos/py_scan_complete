@@ -22,13 +22,15 @@ class PortScanHistory(Resource):
             print(auth)
             return auth
         args = portscan_args.parse_args()
-        ip = socket.gethostbyname(args['value'])
 
-        if not (validators.domain(args['value']) or validators.ip_address.ipv4(ip)):
-            print(validators.domain(args['value']))
-            return {
-                'message': f"{args['value']} is not a valid IP or Domain, please try again"
-                   }, 400
+        if args['value'] is not None:
+            ip = socket.gethostbyname(args['value'])
+
+            if not (validators.domain(args['value']) or validators.ip_address.ipv4(ip)):
+                print(validators.domain(args['value']))
+                return {
+                    'message': f"{args['value']} is not a valid IP or Domain, please try again"
+                       }, 400
 
         limit = 10
         offset = 0
@@ -39,14 +41,19 @@ class PortScanHistory(Resource):
         if 'offset' in args and args['offset'] is not None and args['offset'] != '':
             offset = int(args['offset'])
 
-        if validators.domain(args['value']):
-            db.scans.create_index('value')
-            item = list(db.scans.find({'value': args['value']}))[offset:offset + limit:1]
-            total = len(item)
+        if args['value'] is not None:
+            if validators.domain(args['value']):
+                db.scans.create_index([('user_id', 1), ('value', 1)])
+                item = list(db.scans.find({'user_id': auth[0]['user_id'], 'value': args['value']}))[offset:offset + limit:1]
+                total = db.scans.count_documents({'user_id': auth[0]['user_id'], 'value': args['value']})
+            else:
+                db.scans.create_index([('user_id', 1), ('ip', 1)])
+                item = list(db.scans.find({'user_id': auth[0]['user_id'], 'ip': ip}))[offset:offset + limit:1]
+                total = db.scans.count_documents({'user_id': auth[0]['user_id'], 'ip': ip})
         else:
-            db.scans.create_index('ip')
-            item = list(db.scans.find({'ip': ip}))[offset:offset + limit:1]
-            total = len(item)
+            db.scans.create_index('user_id')
+            item = list(db.scans.find({'user_id': auth[0]['user_id']}))[offset:offset + limit:1]
+            total = db.scans.count_documents({'user_id': auth[0]['user_id']})
 
         if item is None:
             return {

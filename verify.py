@@ -39,8 +39,14 @@ class AuthVerify(Resource):
             return invalid, 401
 
         if db.users.find_one({'username': a['username']}) is not None:
-            return {
-                'message': 'Authentication successful'
-            }, 200
+            if args == ():
+                return {
+                    'message': 'Authentication successful'
+                }, 200
+            else:
+                return {
+                    'message': 'Authentication successful',
+                    'user_id': a['user_id']
+                }, 200
         else:
             return invalid, 401

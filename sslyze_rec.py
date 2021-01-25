@@ -9,7 +9,7 @@ client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
 
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='rabbitmq', heartbeat=0))
+    pika.ConnectionParameters(host='rabbitmq', heartbeat=0, channel_max=1))
 # heartbeat is set to 0 because of an existing bug with RabbitMQ & Pika, stopping heartbeats will cause message loss if
 # receiver goes down https://github.com/albertomr86/python-logging-rabbitmq/issues/17
 channel = connection.channel()
@@ -295,14 +295,16 @@ def callback(ch, method, properties, body):
     item_id = json_loaded['scan_id']
 
     print(ip, value, item_id)
+    db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'sslScanStatus': 'running'}})
 
     obj = ssl_checks(ip)
 
-    db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'SSL/TLSTestResults': obj}})
+    db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'ssl/tlsTestResults': obj, 'sslScanStatus': 'finished'}})
     print(" [x] Done")
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
 channel.basic_qos(prefetch_count=1)
 channel.basic_consume(queue='sslyze_queue', on_message_callback=callback)
+
 channel.start_consuming()
