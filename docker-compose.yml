@@ -1,35 +1,35 @@
 version: "3"
 
 services:
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: rabbitmq
-    ports:
-      - 5672:5672
-      - 15672:15672
+#  rabbitmq:
+#    image: rabbitmq:3-management-alpine
+#    container_name: rabbitmq
+#    ports:
+#      - 5672:5672
+#      - 15672:15672
 
   web:
     build: .
     ports:
-      - "5000:5000"
+      - 5000:5000
     restart: on-failure
-    depends_on:
-      - rabbitmq
+#    depends_on:
+#      - rabbitmq
     volumes:
       - .:/app
 
-  consumer:
-    build: .
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-    working_dir: /app
-    command: port_scan_rec.py
-
-  consumer2:
-    build: .
-    restart: on-failure
-    depends_on:
-      - rabbitmq
-    working_dir: /app
-    command: sslyze_rec.py
+#  consumer:
+#    build: .
+#    restart: on-failure
+#    depends_on:
+#      - rabbitmq
+#    working_dir: /app
+#    command: port_scan_rec.py
+#
+#  consumer2:
+#    build: .
+#    restart: on-failure
+#    depends_on:
+#      - rabbitmq
+#    working_dir: /app
+#    command: sslyze_rec.py
