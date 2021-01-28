@@ -1,5 +1,6 @@
 FROM tiangolo/meinheld-gunicorn-flask:python3.8
 COPY ./requirements.txt /app/requirements.txt
+COPY ./gunicorn_conf.py /app/gunicorn_conf.py
 WORKDIR /app
 ADD auth.py /app/auth.py
 ADD history.py /app/history.py
@@ -13,5 +14,5 @@ ADD verify.py /app/verify.py
 ADD mongo_string.txt /app/mongo_string.txt
 ADD secret_key.txt /app/secret_key.txt
 RUN pip install -r requirements.txt
-ENTRYPOINT [ "python" ]
-CMD [ "main.py" ]
+EXPOSE 5000
+ENTRYPOINT [ "gunicorn", "--config=gunicorn_conf.py", "main:app" ]
