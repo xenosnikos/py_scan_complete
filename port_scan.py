@@ -1,24 +1,18 @@
 from flask_restful import Resource, reqparse, request
 import socket
-from bson import json_util
-import pika
+from redis import Redis
+from rq import Retry, Queue
+import port_scan_rec
+import sslyze_rec
 import pymongo
 from datetime import datetime
-import verify
 import validators
 
 client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', heartbeat=0, channel_max=2))
-# heartbeat is set to 0 because of an existing bug with RabbitMQ & Pika, stopping heartbeats will
-# cause message loss if receiver goes down
-# https://github.com/albertomr86/python-logging-rabbitmq/issues/17
-channel = connection.channel()
-channel2 = connection.channel()
-
-channel.queue_declare(queue='scan_queue', durable=True)
-channel2.queue_declare(queue='sslyze_queue', durable=True)
+queue1 = Queue(name='scan_queue', connection=Redis(host='localhost', port=31000), default_timeout=900)
+queue2 = Queue(name='sslyze_queue', connection=Redis(host='localhost', port=31000))
 
 portscan_args = reqparse.RequestParser()
 # change ip to value
@@ -28,12 +22,13 @@ portscan_args.add_argument('value', help='Domain or IP is required to port scan'
 class PortScan(Resource):
 
     def post(self):
-        auth_arg = request.headers.get('Authorization')
-        auth = verify.AuthVerify.post(auth_arg)
+        auth = request.headers.get('Authorization')
 
-        if auth[1] != 200:
-            print(auth)
-            return auth
+        if auth != open('api_key.txt').read():
+            return {
+                'message': 'Provided token is invalid, please check and try again'
+            }, 401
+
         args = portscan_args.parse_args()
 
         list_ips = []
@@ -45,9 +40,8 @@ class PortScan(Resource):
             if validators.domain(val) or validators.ip_address.ipv4(val):
                 ip = socket.gethostbyname(val)
                 # add the actual value in(URL)
-                print(auth)
                 item = db.scans.insert_one(
-                    {'user_id': auth[0]['user_id'], 'ip': ip, 'value': val, 'portScanStatus': 'queued',
+                    {'ip': ip, 'value': val, 'portScanStatus': 'queued',
                      'portScanPercentage': 0, 'sslScanStatus': 'queued', "timeStamp": datetime.utcnow()}).inserted_id
                 list_ips.append(ip)
                 list_value.append(val)
@@ -64,24 +58,12 @@ class PortScan(Resource):
                     'value': val
                 }
 
-                channel.basic_publish(
-                    exchange='',
-                    routing_key='scan_queue',
-                    body=json_util.dumps(message),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,  # make message persistent
-                    ))
-
-                channel2.basic_publish(
-                    exchange='',
-                    routing_key='sslyze_queue',
-                    body=json_util.dumps(message_sslyze),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,  # make message persistent
-                    ))
+                queue1.enqueue(port_scan_rec.callback, message, retry=Retry(max=3, interval=[10, 30, 60]))
+                queue2.enqueue(sslyze_rec.callback, message_sslyze, retry=Retry(max=3, interval=[10, 30, 60]))
 
                 print(" [x] Sent Scan %r" % message)
-                print(" [x] Sent SSLYZE %r" % message)
+                print(queue1.count)
+                print(" [x] Sent SSLYZE %r" % message_sslyze)
             else:
                 return {
                     'message': f'{val} is not a valid IP or Domain, please try again'

@@ -1,6 +1,5 @@
-from bson import json_util
 from bson.objectid import ObjectId
-import pika
+import logging
 import pymongo
 import sslyze
 import datetime
@@ -8,13 +7,7 @@ import datetime
 client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='rabbitmq', heartbeat=0, channel_max=1))
-# heartbeat is set to 0 because of an existing bug with RabbitMQ & Pika, stopping heartbeats will cause message loss if
-# receiver goes down https://github.com/albertomr86/python-logging-rabbitmq/issues/17
-channel = connection.channel()
-
-channel.queue_declare(queue='sslyze_queue', durable=True)
+logging.basicConfig(filename='sslyze_scan.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 
 
 def ssl_checks(value):
@@ -287,12 +280,12 @@ def ssl_checks(value):
         return obj
 
 
-def callback(ch, method, properties, body):
-    print(" [x] Received %r" % body.decode())
-    json_loaded = json_util.loads(body)
-    ip = json_loaded['ip']
-    value = json_loaded['value']
-    item_id = json_loaded['scan_id']
+def callback(body):
+    logging.info(f'message {body} from queue is received')
+    print(" [x] Received %r" % body)
+    ip = body['ip']
+    value = body['value']
+    item_id = body['scan_id']
 
     print(ip, value, item_id)
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'sslScanStatus': 'running'}})
@@ -301,10 +294,4 @@ def callback(ch, method, properties, body):
 
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'ssl/tlsTestResults': obj, 'sslScanStatus': 'finished'}})
     print(" [x] Done")
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-
-channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue='sslyze_queue', on_message_callback=callback)
-
-channel.start_consuming()
+    logging.info(f'message {body} from queue is complete')

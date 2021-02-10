@@ -1,7 +1,6 @@
 from flask_restful import Resource, reqparse, request
 from bson.objectid import ObjectId
 import pymongo
-import verify
 
 client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
@@ -13,11 +12,13 @@ portscan_args.add_argument('scan_id', help='Scan ID is required to lookup port s
 class PortScanResult(Resource):
 
     def get(self):
-        auth_arg = request.headers.get('Authorization')
-        auth = verify.AuthVerify.post(auth_arg)
-        if auth[1] != 200:
-            print(auth)
-            return auth
+        auth = request.headers.get('Authorization')
+
+        if auth != open('api_key.txt').read():
+            return {
+                       'message': 'Provided token is invalid, please check and try again'
+                   }, 401
+
         args = portscan_args.parse_args()
         item_id = args['scan_id']
         item = db.scans.find_one({"_id": ObjectId(item_id)})

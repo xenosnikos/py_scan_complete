@@ -1,21 +1,14 @@
-from bson import json_util
 from bson.objectid import ObjectId
 import socket, threading
 from queue import Queue
-import pika
 import pymongo
+import logging
 
 
 client = pymongo.MongoClient(open('mongo_string.txt').read())
 db = client.test
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='rabbitmq', heartbeat=0, channel_max=1))
-# heartbeat is set to 0 because of an existing bug with RabbitMQ & Pika, stopping heartbeats will cause message loss if
-# receiver goes down https://github.com/albertomr86/python-logging-rabbitmq/issues/17
-channel = connection.channel()
-
-channel.queue_declare(queue='scan_queue', durable=True)
+logging.basicConfig(filename='port_scan.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 
 socket.setdefaulttimeout(3)
 print_lock = threading.Lock()
@@ -44,12 +37,12 @@ def threader():
         q.task_done()
 
 
-def callback(ch, method, properties, body):
-    print(" [x] Received %r" % body.decode())
-    json_loaded = json_util.loads(body)
+def callback(body):
+    logging.info(f'message {body} from queue is received')
+    print(" [x] Received %r" % body)
     global ip
-    ip = json_loaded['ip']
-    item_id = json_loaded['scan_id']
+    ip = body['ip']
+    item_id = body['scan_id']
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanStatus': 'running'}})
 
     for x in range(333):
@@ -69,12 +62,7 @@ def callback(ch, method, properties, body):
     for each in ports:
         obj[str(each)] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanStatus': 'finished', 'openPorts': obj}})
-    print(" [x] Done")
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+    logging.info(f'message {body} from queue is complete')
 
 
 q = Queue()
-channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue='scan_queue', on_message_callback=callback)
-
-channel.start_consuming()

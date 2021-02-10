@@ -3,7 +3,6 @@ import socket
 from bson import json_util
 import json
 import pymongo
-import verify
 import validators
 
 client = pymongo.MongoClient(open('mongo_string.txt').read())
@@ -16,11 +15,13 @@ portscan_args.add_argument('value', help='IP or Domain is required to lookup his
 class PortScanHistory(Resource):
 
     def get(self):
-        auth_arg = request.headers.get('Authorization')
-        auth = verify.AuthVerify.post(auth_arg)
-        if auth[1] != 200:
-            print(auth)
-            return auth
+        auth = request.headers.get('Authorization')
+
+        if auth != open('api_key.txt').read():
+            return {
+                       'message': 'Provided token is invalid, please check and try again'
+                   }, 401
+
         args = portscan_args.parse_args()
 
         if args['value'] is not None:
