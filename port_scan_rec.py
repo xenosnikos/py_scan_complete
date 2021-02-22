@@ -3,9 +3,10 @@ import socket, threading
 from queue import Queue
 import pymongo
 import logging
+import os
 
 
-client = pymongo.MongoClient(open('mongo_string.txt').read())
+client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
 
 logging.basicConfig(filename='port_scan.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -42,27 +43,32 @@ def callback(body):
     print(" [x] Received %r" % body)
     global ip
     ip = body['ip']
-    item_id = body['scan_id']
-    db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanStatus': 'running'}})
 
-    for x in range(333):
+    if body['type'] == 'fast':
+        scan_list = db.portPriority.find({'count': {'$gte': 100000}}, {'_id': 0, 'port': 1})
+        thread = 153
+    elif body['type'] == 'medium':
+        scan_list = db.portPriority.find({'count': {'$gte': 1000}}, {'_id': 0, 'port': 1})
+        thread = 1000
+    else:
+        scan_list = db.portPriority.find({}, {'_id': 0, 'port': 1})
+        thread = int(os.environ.get('MAX_THREADS'))
+
+    for x in range(thread):
         t = threading.Thread(target=threader)
         t.start()
 
-    init = 655 * 5
-
-    for worker in range(1, 65535):
-        if worker == init:
-            db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanPercentage': worker//655}})
-            init += 655 * 5
-        q.put(worker)
+    for worker in scan_list:
+        q.put(worker['port'])
 
     q.join()
     obj = {}
     for each in ports:
         obj[str(each)] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
-    db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanStatus': 'finished', 'openPorts': obj}})
+    # db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanStatus': 'finished', 'openPorts': obj}})
+    print('done')
     logging.info(f'message {body} from queue is complete')
+    return obj
 
 
 q = Queue()

@@ -1,20 +1,21 @@
 from flask_restful import Resource, reqparse, request
 from bson.objectid import ObjectId
 import pymongo
+import os
 
-client = pymongo.MongoClient(open('mongo_string.txt').read())
+client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
 
 portscan_args = reqparse.RequestParser()
 portscan_args.add_argument('scan_id', help='Scan ID is required to lookup port scan results', required=True)
 
 
-class PortScanResult(Resource):
+class ScanResult(Resource):
 
     def get(self):
         auth = request.headers.get('Authorization')
 
-        if auth != open('api_key.txt').read():
+        if auth != os.environ.get('API_KEY'):
             return {
                        'message': 'Provided token is invalid, please check and try again'
                    }, 401

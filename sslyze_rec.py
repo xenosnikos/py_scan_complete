@@ -3,8 +3,9 @@ import logging
 import pymongo
 import sslyze
 import datetime
+import os
 
-client = pymongo.MongoClient(open('mongo_string.txt').read())
+client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
 
 logging.basicConfig(filename='sslyze_scan.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -251,8 +252,8 @@ def ssl_checks(value):
         # HTTP Security Headers
         try:
             http_security_rate_result = server_scan_result.scan_commands_results['http_headers']
+            print(http_security_rate_result)
             obj['httpSecurityHeaders'] = {
-                'strictTransportSecurityHeader': http_security_rate_result.strict_transport_security_header,
                 'publicKeyPinsHeader': http_security_rate_result.public_key_pins_header,
                 'publicKeyPinsReportOnlyHeader': http_security_rate_result.public_key_pins_report_only_header,
                 'expectCTHeader': http_security_rate_result.expect_ct_header,
@@ -290,8 +291,11 @@ def callback(body):
     print(ip, value, item_id)
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'sslScanStatus': 'running'}})
 
-    obj = ssl_checks(ip)
+    obj = ssl_checks(value)
+
+    print(obj)
 
     db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'ssl/tlsTestResults': obj, 'sslScanStatus': 'finished'}})
     print(" [x] Done")
     logging.info(f'message {body} from queue is complete')
+

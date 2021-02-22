@@ -4,20 +4,21 @@ from bson import json_util
 import json
 import pymongo
 import validators
+import os
 
-client = pymongo.MongoClient(open('mongo_string.txt').read())
+client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
 
 portscan_args = reqparse.RequestParser()
 portscan_args.add_argument('value', help='IP or Domain is required to lookup history')
 
 
-class PortScanHistory(Resource):
+class ScanHistory(Resource):
 
     def get(self):
         auth = request.headers.get('Authorization')
 
-        if auth != open('api_key.txt').read():
+        if auth != os.environ.get('API_KEY'):
             return {
                        'message': 'Provided token is invalid, please check and try again'
                    }, 401
