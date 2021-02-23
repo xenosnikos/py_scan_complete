@@ -17,7 +17,7 @@ db = client.test
 # queue_port = Queue(name='scan_queue', connection=Redis(host=os.environ.get('REDIS_HOST'), port=int(os.environ.get('REDIS_PORT'))), default_timeout=900)
 # queue_ssl = Queue(name='sslyze_queue', connection=Redis(host=os.environ.get('REDIS_HOST'), port=int(os.environ.get('REDIS_PORT'))))
 add_to_db = Queue(name='add_db_queue',
-                  connection=Redis(host=os.environ.get('REDIS_HOST'), port=int(os.environ.get('REDIS_PORT'))))
+                  connection=Redis(host=os.environ.get('REDIS_HOST')))
 
 portscan_args = reqparse.RequestParser()
 # change ip to value
@@ -50,11 +50,11 @@ class Scan(Resource):
 
         list_scans = {}
         val = args['value']
-
         db.scans.create_index('value')
         search = db.scans.find_one({'value': val}, sort=[('_id', pymongo.DESCENDING)])
 
-        force = search['timeStamp'] + timedelta(days=2) < datetime.utcnow()
+        if search is not None:
+            force = search['timeStamp'] + timedelta(days=2) < datetime.utcnow()
 
         if args['force']:
             force = True
@@ -91,7 +91,7 @@ class Scan(Resource):
                                                       'type': 'slow'})
 
                     list_scans['internalPortScan'] = out
-
+                    print('port_scans done')
                 if args['infrastructureAnalysis']:
                     resp = requests.get(
                         f"https://api.threatintelligenceplatform.com/v1/infrastructureAnalysis?domainName="
@@ -101,7 +101,7 @@ class Scan(Resource):
                         out = json.loads(resp.content.decode())
 
                         list_scans['infrastructureAnalysis'] = out
-
+                        print(2)
                 if args['connectedDomains']:
                     resp = requests.get(f"https://api.threatintelligenceplatform.com/v1/connectedDomains?domainName="
                                         f"{val}&apiKey={os.environ.get('API_KEY_THREAT_INTELLIGENCE')}")
@@ -110,7 +110,7 @@ class Scan(Resource):
                         out = json.loads(resp.content.decode())
 
                         list_scans['connectedDomains'] = out['domains']
-
+                        print(3)
                 if args['domainReputation']:
                     resp = requests.get(f"https://api.threatintelligenceplatform.com/v1/reputation?domainName="
                                         f"{val}&mode=fast&apiKey={os.environ.get('API_KEY_THREAT_INTELLIGENCE')}")
@@ -119,7 +119,7 @@ class Scan(Resource):
                         out = json.loads(resp.content.decode())
 
                         list_scans['domainReputation'] = [out]
-
+                        print(4)
                 if args['malwareCheck']:
                     resp = requests.get(f"https://api.threatintelligenceplatform.com/v1/malwareCheck?domainName="
                                         f"{val}&apiKey={os.environ.get('API_KEY_THREAT_INTELLIGENCE')}")
@@ -128,7 +128,7 @@ class Scan(Resource):
                         out = json.loads(resp.content.decode())
 
                         list_scans['malwareCheck'] = [out]
-
+                        print(5)
                 if args['sslCertificatesChain']:
                     resp = requests.get(
                         f"https://api.threatintelligenceplatform.com/v1/sslCertificatesChain?domainName="
@@ -138,7 +138,7 @@ class Scan(Resource):
                         out = json.loads(resp.content.decode())
 
                         list_scans['sslCertificatesChain'] = out
-
+                        print(6)
                 if args['sslConfiguration']:
                     resp = requests.get(f"https://api.threatintelligenceplatform.com/v1/sslConfiguration?domainName="
                                         f"{val}&apiKey={os.environ.get('API_KEY_THREAT_INTELLIGENCE')}")
@@ -147,7 +147,7 @@ class Scan(Resource):
                         out = json.loads(resp.content.decode())
 
                         list_scans['sslConfiguration'] = [out]
-
+                        print(7)
                 if args['screenShot']:
                     resp = requests.get(
                         f"https://website-screenshot.whoisxmlapi.com/api/v1?apiKey={os.environ.get('API_KEY_WHOIS_XML')}"
@@ -157,7 +157,7 @@ class Scan(Resource):
                         out = resp.content.decode()
 
                         list_scans['screenShot'] = out
-
+                        print(8)
                 # queue_port.enqueue(port_scan_rec.callback, message, retry=Retry(max=3, interval=[10, 30, 60]))
                 # queue_ssl.enqueue(sslyze_rec.callback, message_sslyze, retry=Retry(max=3, interval=[10, 30, 60]))
 
