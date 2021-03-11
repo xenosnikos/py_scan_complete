@@ -1,1 +1,0 @@
-mongodb+srv://san:U652JqPlfdYFdwDp@cluster0.aove7.mongodb.net/test?retryWrites=true&w=majority

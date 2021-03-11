@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e
+set -x
+
+docker build -t trustymail/cli .
+
+docker run --rm -it \
+  --name trustymail \
+  --volume "$(pwd)":/workspace \
+  --workdir="/workspace" \
+  --user "$(id -u)" \
+  trustymail/cli "$@"

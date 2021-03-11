@@ -1,4 +1,5 @@
-port_scan.log
-sslyze_scan.log
-add_to_db.log
+logs/port_scan.log
+logs/sslyze_scan.log
+logs/add_to_db.log
 .idea
+.env
