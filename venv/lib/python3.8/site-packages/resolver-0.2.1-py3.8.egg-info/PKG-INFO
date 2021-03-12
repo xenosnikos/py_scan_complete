@@ -1,0 +1,24 @@
+Metadata-Version: 1.1
+Name: resolver
+Version: 0.2.1
+Summary: Resolve specially formated statements to Python objects.
+Home-page: http://lukearno.com/projects/resolver/
+Author: Luke Arno
+Author-email: luke.arno@gmail.com
+License: LGPL
+Description: Turn strings like "packagename.modulename:Eval().the_rest()"
+        into whatever you would get back by performing a similar 
+        sequence of imports and calls. This is useful for config files
+        and situations where you would like to import things in a lazy 
+        way. Later this package will probably provide a way to restrict 
+        resolution for safety.
+Keywords: import text string eval config
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Utilities

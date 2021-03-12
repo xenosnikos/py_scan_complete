@@ -1,0 +1,10 @@
+COPYING
+README
+ez_setup.py
+resolver.py
+setup.cfg
+setup.py
+resolver.egg-info/PKG-INFO
+resolver.egg-info/SOURCES.txt
+resolver.egg-info/dependency_links.txt
+resolver.egg-info/top_level.txt
