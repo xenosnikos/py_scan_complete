@@ -3,7 +3,7 @@ import pymongo
 from bson import ObjectId
 from datetime import datetime, timedelta
 
-client = pymongo.MongoClient('mongodb+srv://san:U652JqPlfdYFdwDp@cluster0.aove7.mongodb.net/test?retryWrites=true&w=majority')
+client = pymongo.MongoClient('mongodb+srv://stage:2rHOWa6oIFu0ckLG@cluster0.o5uwc.mongodb.net/test?retryWrites=true&w=majority')
 db = client.test
 
 logging.basicConfig(filename='logs/add_to_db.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',

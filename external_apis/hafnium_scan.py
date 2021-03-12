@@ -7,15 +7,16 @@ from rq import Retry, Queue
 import pymongo
 from datetime import datetime, timedelta
 import validators
-from helpers import auth_check, queue_to_db
+from helpers import auth_check
 import requests
 import nmap
+import helpers
 
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
 
 add_to_db = Queue(name='hafniumScan_db_queue',
-                  connection=Redis(host=os.environ.get('REDIS_HOST'), port=os.environ.get('REDIS_PORT')))
+                  connection=Redis(host='pyscan-redis-stage-do-user-8532994-0.b.db.ondigitalocean.com', port='25061', username='default', password='kzodr4urcjdpew09', ssl=True))
 
 portscan_args = reqparse.RequestParser()
 
@@ -46,7 +47,7 @@ class HafniumScan(Resource):
         check_ep = ('/owa/auth/web.aspx', '/owa/auth/help.aspx', '/owa/auth/document.aspx', '/owa/auth/errorEE.aspx',
                     '/owa/auth/errorEEE.aspx', '/owa/auth/errorEW.aspx', '/owa/auth/errorFF.aspx',
                     '/owa/auth/healthcheck.aspx', '/owa/auth/aspnet_www.aspx', '/owa/auth/aspnet_client.aspx',
-                    '/owa/auth/xx.aspx', '/owa/auth/shell.aspx', '/owa/auth/aspnet_iisstart.aspx', '/owa/auth/one.aspx')
+                    '/owa/auth/xx.aspx', '/owa/auth/shell.aspx', '/owa/auth/aspnet_iisstart.aspx', '/owa/auth/one.aspx', '/aspnet_client', '/aspnet_client/system_web', '/OAB')
 
         for target in args['value']:
 
@@ -60,14 +61,23 @@ class HafniumScan(Resource):
             mx_cloud_records = {}
             mx_patch_status = {}
 
-            for mx_record in dns.resolver.query(target, 'MX'):
-                # Ternary operator
-                mx_records.append(str(mx_record.exchange)[:len(str(mx_record.exchange)) - 1] if
-                                  str(mx_record.exchange)[len(str(mx_record.exchange)) - 1] == '.' else
-                                  str(mx_record.exchange))
+            try:
+                for mx_record in dns.resolver.query(target, 'MX'):
+                    # Ternary operator
+                    mx_records.append(str(mx_record.exchange)[:len(str(mx_record.exchange)) - 1] if
+                                      str(mx_record.exchange)[len(str(mx_record.exchange)) - 1] == '.' else
+                                      str(mx_record.exchange))
+            except:
+                return {
+                    target: {'No MX': 'None'}
+                }
 
             for each in mx_records:
-                ip = socket.gethostbyname(each)
+                try:
+                    ip = socket.gethostbyname(each)
+                except:
+                    mx_cloud_records['No MX'] = 'None'
+                    continue
                 nmap_patch = nmap.PortScanner()
                 patch_check = nmap_patch.scan(hosts=ip, ports='443', arguments='--script=/usr/local/share/nmap'
                                                                                '/scripts/http-vuln-cve2021-26855.nse')
@@ -89,16 +99,16 @@ class HafniumScan(Resource):
                                'patch_status': mx_patch_status[each],
                                'force': args['force']}
 
-                    add_to_db.enqueue(queue_to_db.hafnium_db_addition, message,
+                    add_to_db.enqueue('helpers.queue_to_db.hafnium_db_addition', message,
                                       retry=Retry(max=3, interval=[10, 30, 60]))
+
+            print(mx_records)
 
             if len(mx_on_prem_records) == 0:
                 breach_outputs[target] = mx_cloud_records
                 continue
 
             mx_outputs = {}
-
-            print(mx_records)
 
             for target_value, target_ip in mx_on_prem_records.items():
                 print(target_value)
@@ -127,42 +137,51 @@ class HafniumScan(Resource):
                     ip_breaches = {}
                     last_endpoint = None
                     issue_found = False
+                    count = 0
+                    data = {}
 
                     for endpoint in check_ep:
                         print(endpoint)
                         url = f"https://{target_ip}{endpoint}"
 
-                        if last_endpoint is not None and ip_breaches[last_endpoint] == 'Connection Refused':
-                            ip_breaches[endpoint] = 'Connection Refused'
+                        if last_endpoint is not None and data[last_endpoint] == 'Connection Refused':
+                            data[endpoint] = 'Connection Refused'
                             continue
 
                         try:
                             resp = requests.get(url=url, verify=False)
                         except requests.exceptions.ConnectionError:
                             last_endpoint = endpoint
-                            ip_breaches[endpoint] = 'Connection Refused'
+                            data[endpoint] = 'Connection Refused'
                             continue
                         except requests.exceptions.TooManyRedirects:
-                            ip_breaches[endpoint] = 'Too many Redirects'
+                            data[endpoint] = 'Too many Redirects'
                             continue
 
                         if resp.status_code == 200:
                             if hasattr(resp, 'url') and 'errorFE.aspx' in resp.url:
-                                ip_breaches[endpoint] = False
+                                data[endpoint] = False
                                 continue
                             else:
                                 finding = {'etag': resp.headers['ETag'] if 'ETag' in resp.headers else False,
                                            'powered': resp.headers[
                                                'X-Powered-By'] if 'X-Powered-By' in resp.headers else False,
                                            'server': resp.headers['Server'] if 'Server' in resp.headers else False}
-                                ip_breaches[endpoint] = finding
+                                data[endpoint] = finding
                                 issue_found = True
                         else:
                             if hasattr(resp, 'url') and 'errorFE.aspx' in resp.url:
-                                ip_breaches[endpoint] = False
+                                data[endpoint] = False
                                 continue
                             else:
-                                ip_breaches[endpoint] = f'Status Code: {resp.status_code}'
+                                data[endpoint] = f'Status Code: {resp.status_code}'
+
+                    ip_breaches['ip'] = target_ip
+                    ip_breaches['patch_status'] = mx_patch_status[target_value]
+                    ip_breaches['type'] = 'on-prem'
+                    ip_breaches['breached'] = issue_found
+                    ip_breaches['count'] = count
+                    ip_breaches['data'] = data
 
                     if len(mx_cloud_records) != 0:
                         mx_outputs.update(mx_cloud_records)
@@ -173,7 +192,7 @@ class HafniumScan(Resource):
                                    'endpoints': ip_breaches,
                                    'issue_found': issue_found}
 
-                        add_to_db.enqueue(queue_to_db.hafnium_db_addition, message,
+                        add_to_db.enqueue('helpers.queue_to_db.hafnium_db_addition', message,
                                           retry=Retry(max=3, interval=[10, 30, 60]))
 
                 else:
