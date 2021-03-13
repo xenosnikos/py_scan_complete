@@ -1,3 +1,4 @@
+
 description = [[
 Detects whether the specified URL is vulnerable to the Exchange Server SSRF Vulnerability (CVE-2021-26855).
 ]]
