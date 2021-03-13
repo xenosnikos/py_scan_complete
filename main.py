@@ -31,4 +31,4 @@ api.add_resource(scans_available.AvailableScans, '/supportedScans')
 api.add_resource(queue_status.QueueStatus, "/queue/status/conf")
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host='127.0.0.1', port=5000)
