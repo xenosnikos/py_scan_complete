@@ -1,22 +1,17 @@
 import os
 from flask_restful import Resource, reqparse, request, inputs
-import socket
+import socket, threading
 import dns.resolver
-from redis import Redis
-from rq import Retry, Queue
 import pymongo
 from datetime import datetime, timedelta
 import validators
 from helpers import auth_check
 import requests
 import nmap
-import helpers
+from queue import Queue
 
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
-
-add_to_db = Queue(name='hafniumScan_db_queue',
-                  connection=Redis(host='pyscan-redis-stage-do-user-8532994-0.b.db.ondigitalocean.com', port='25061', username='default', password='kzodr4urcjdpew09', ssl=True))
 
 portscan_args = reqparse.RequestParser()
 
@@ -27,11 +22,54 @@ portscan_args.add_argument('domainId', help='Domain ID is required to associate 
 portscan_args.add_argument('hafniumScan', type=inputs.boolean, default=False)
 portscan_args.add_argument('force', type=inputs.boolean, default=True)
 
+data = {}
+issue_found = False
+count = 0
+q = Queue()
 
 class HafniumScan(Resource):
 
     @staticmethod
+    def ep_check(url):
+        global data, issue_found, count
+        try:
+            resp = requests.get(url=url, verify=False)
+        except requests.exceptions.ConnectionError:
+            data[url] = 'Connection Refused'
+            return
+        except requests.exceptions.TooManyRedirects:
+            data[url] = 'Too many Redirects'
+            return
+
+        if resp.status_code == 200:
+            if hasattr(resp, 'url') and 'errorFE.aspx' in resp.url:
+                data[url] = False
+                return
+            else:
+                finding = {'etag': resp.headers['ETag'] if 'ETag' in resp.headers else False,
+                           'powered': resp.headers[
+                               'X-Powered-By'] if 'X-Powered-By' in resp.headers else False,
+                           'server': resp.headers['Server'] if 'Server' in resp.headers else False}
+                data[url] = finding
+                issue_found = True
+                count += 1
+        else:
+            if hasattr(resp, 'url') and 'errorFE.aspx' in resp.url:
+                data[url] = False
+                return
+            else:
+                data[url] = resp.status_code
+
+    @staticmethod
+    def threader():
+        while True:
+            worker = q.get()
+            HafniumScan.ep_check(worker)
+            q.task_done()
+
+    @staticmethod
     def post():
+        global data, issue_found, count, q
         auth = request.headers.get('Authorization')
 
         authentication = auth_check.auth_check(auth)
@@ -44,10 +82,13 @@ class HafniumScan(Resource):
         breach_outputs = {}
         db.hafniumScan.create_index([('value', pymongo.ASCENDING), ('mx_record', pymongo.ASCENDING)])
 
-        check_ep = ('/owa/auth/web.aspx', '/owa/auth/help.aspx', '/owa/auth/document.aspx', '/owa/auth/errorEE.aspx',
-                    '/owa/auth/errorEEE.aspx', '/owa/auth/errorEW.aspx', '/owa/auth/errorFF.aspx',
-                    '/owa/auth/healthcheck.aspx', '/owa/auth/aspnet_www.aspx', '/owa/auth/aspnet_client.aspx',
-                    '/owa/auth/xx.aspx', '/owa/auth/shell.aspx', '/owa/auth/aspnet_iisstart.aspx', '/owa/auth/one.aspx', '/aspnet_client', '/aspnet_client/system_web', '/OAB')
+        check_ep = ('shellex.aspx', 'iistart.aspx', 'one.aspx', 't.aspx', 'aspnettest.aspx', 'error.aspx',
+                    'discover.aspx', 'supp0rt.aspx', 'shell.aspx', 'HttpProxy.aspx', '0QWYSEXe.aspx', 'load.aspx',
+                    'sol.aspx', 'RedirSuiteServerProxy.aspx', 'OutlookEN.aspx', 'errorcheck.aspx', 'web.aspx',
+                    'help.aspx', 'document.aspx', 'errorEE.aspx', 'errorEEE.aspx', 'errorEW.aspx', 'errorFF.aspx',
+                    'healthcheck.aspx', 'aspnet_www.aspx', 'aspnet_client.aspx', 'xx.aspx', 'aspnet_iisstart.aspx')
+
+        folders = ('/aspnet_client/', '/aspnet_client/system_web/', '/owa/auth/')
 
         for target in args['value']:
 
@@ -56,7 +97,7 @@ class HafniumScan(Resource):
                            'message': f'{target} is not a valid domain, please try again'
                        }, 400
 
-            mx_records = []
+            mx_records = set()
             mx_on_prem_records = {}
             mx_cloud_records = {}
             mx_patch_status = {}
@@ -64,9 +105,9 @@ class HafniumScan(Resource):
             try:
                 for mx_record in dns.resolver.query(target, 'MX'):
                     # Ternary operator
-                    mx_records.append(str(mx_record.exchange)[:len(str(mx_record.exchange)) - 1] if
-                                      str(mx_record.exchange)[len(str(mx_record.exchange)) - 1] == '.' else
-                                      str(mx_record.exchange))
+                    mx_records.add(str(mx_record.exchange)[:len(str(mx_record.exchange)) - 1] if
+                                   str(mx_record.exchange)[len(str(mx_record.exchange)) - 1] == '.' else
+                                   str(mx_record.exchange))
             except:
                 return {
                     target: {'No MX': 'None'}
@@ -93,22 +134,14 @@ class HafniumScan(Resource):
                     mx_on_prem_records[each] = ip
                 else:
                     mx_cloud_records[each] = 'Cloud'
-                    message = {'domain': target,
-                               'mx_record': each,
-                               'ip': ip,
-                               'patch_status': mx_patch_status[each],
-                               'force': args['force']}
-
-                    add_to_db.enqueue('helpers.queue_to_db.hafnium_db_addition', message,
-                                      retry=Retry(max=3, interval=[10, 30, 60]))
-
-            print(mx_records)
 
             if len(mx_on_prem_records) == 0:
                 breach_outputs[target] = mx_cloud_records
                 continue
 
             mx_outputs = {}
+
+            print(mx_records)
 
             for target_value, target_ip in mx_on_prem_records.items():
                 print(target_value)
@@ -135,46 +168,25 @@ class HafniumScan(Resource):
                          "timeStamp": datetime.utcnow()}).inserted_id
 
                     ip_breaches = {}
-                    last_endpoint = None
+
+                    for x in range(84):
+                        t = threading.Thread(target=HafniumScan.threader)
+                        t.start()
+
+                    data = {}
                     issue_found = False
                     count = 0
-                    data = {}
+                    q = Queue()
 
-                    for endpoint in check_ep:
-                        print(endpoint)
-                        url = f"https://{target_ip}{endpoint}"
+                    for folder in folders:
+                        for endpoint in check_ep:
 
-                        if last_endpoint is not None and data[last_endpoint] == 'Connection Refused':
-                            data[endpoint] = 'Connection Refused'
-                            continue
+                            print(folder+endpoint)
+                            url = f"https://{target_value}{folder}{endpoint}"
 
-                        try:
-                            resp = requests.get(url=url, verify=False)
-                        except requests.exceptions.ConnectionError:
-                            last_endpoint = endpoint
-                            data[endpoint] = 'Connection Refused'
-                            continue
-                        except requests.exceptions.TooManyRedirects:
-                            data[endpoint] = 'Too many Redirects'
-                            continue
+                            q.put(url)
 
-                        if resp.status_code == 200:
-                            if hasattr(resp, 'url') and 'errorFE.aspx' in resp.url:
-                                data[endpoint] = False
-                                continue
-                            else:
-                                finding = {'etag': resp.headers['ETag'] if 'ETag' in resp.headers else False,
-                                           'powered': resp.headers[
-                                               'X-Powered-By'] if 'X-Powered-By' in resp.headers else False,
-                                           'server': resp.headers['Server'] if 'Server' in resp.headers else False}
-                                data[endpoint] = finding
-                                issue_found = True
-                        else:
-                            if hasattr(resp, 'url') and 'errorFE.aspx' in resp.url:
-                                data[endpoint] = False
-                                continue
-                            else:
-                                data[endpoint] = f'Status Code: {resp.status_code}'
+                    q.join()
 
                     ip_breaches['ip'] = target_ip
                     ip_breaches['patch_status'] = mx_patch_status[target_value]
@@ -192,8 +204,8 @@ class HafniumScan(Resource):
                                    'endpoints': ip_breaches,
                                    'issue_found': issue_found}
 
-                        add_to_db.enqueue('helpers.queue_to_db.hafnium_db_addition', message,
-                                          retry=Retry(max=3, interval=[10, 30, 60]))
+                        # add_to_db.enqueue(queue_to_db.hafnium_db_addition, message,
+                        #                   retry=Retry(max=3, interval=[10, 30, 60]))
 
                 else:
                     del search['_id']

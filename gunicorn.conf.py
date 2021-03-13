@@ -2,7 +2,7 @@ import multiprocessing
 
 
 bind="0.0.0.0:5000"
-timeout=900
+timeout=900000000
 raw_env=[
 "DEBUG=False",
 "FLASK_ENV=production",
