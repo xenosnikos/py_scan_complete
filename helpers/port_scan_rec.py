@@ -61,6 +61,7 @@ def callback(body):
         q.put(worker['port'])
 
     q.join()
+    t.join()
     obj = {}
     for each in ports:
         obj[str(each)] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
