@@ -12,6 +12,8 @@ from external_apis.spoof_check_api import SpoofCheck
 from external_apis.trustymail_api import TrustyMail
 from external_apis import scans_available, queue_status
 from external_apis.hafnium_scan import HafniumScan
+from external_apis.hafnium_scan_request import HafniumScanRequest
+from external_apis.hafnium_scan_response import HafniumScanResponse
 
 app = Flask(__name__)
 api = Api(app)
@@ -27,6 +29,8 @@ api.add_resource(ScreenShot, "/screenShot")
 api.add_resource(SpoofCheck, "/spoofCheck")
 api.add_resource(TrustyMail, "/trustyMail")
 api.add_resource(HafniumScan, "/hafniumScan")
+api.add_resource(HafniumScanRequest, "/hafniumScanRequest")
+api.add_resource(HafniumScanResponse, "/hafniumScanResponse")
 api.add_resource(scans_available.AvailableScans, '/supportedScans')
 api.add_resource(queue_status.QueueStatus, "/queue/status/conf")
 

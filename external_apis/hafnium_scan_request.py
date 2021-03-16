@@ -8,7 +8,7 @@ import validators
 from helpers import auth_check
 
 portscan_args = reqparse.RequestParser()
-portscan_args.add_argument('value', help='Domain is required to scan', required=True, action='append')
+portscan_args.add_argument('value', help='Domain is required to scan', required=True)
 portscan_args.add_argument('hafniumScan', type=inputs.boolean, default=False)
 portscan_args.add_argument('force', type=inputs.boolean, default=False)
 
@@ -17,6 +17,7 @@ class HafniumScanRequest(Resource):
 
     @staticmethod
     def post():
+        data = {}
         auth = request.headers.get('Authorization')
 
         authentication = auth_check.auth_check(auth)
@@ -26,23 +27,29 @@ class HafniumScanRequest(Resource):
 
         args = portscan_args.parse_args()
 
-        domain = args['domain']
-
-        if not HafniumScanRequest.validate_domain(domain):
-            return {
-                'message': f'{domain} is not a valid domain, please try again'
-            }, 400
-
-        db.hafnium.create_index('domain')
-        search = db.hafnium.find({'domain': domain})
-
-        # force comes in as false by default
         if args['force']:
             force = True
-        elif search is not None:
-            force = search['timeStamp'] + timedelta(days=1) < datetime.utcnow()
-
-        if search is None or force:
-            return {'status': 'queued'}
         else:
-            return {'status': search['status']}
+            force = False
+
+        data['domain'] = args['value']
+
+        if not hafnium.validate_domain(data['domain']):
+            return {
+                'message': f"{data['domain']} is not a valid domain, please try again"
+            }, 400
+
+        check = hafnium.check_force(data, force)
+
+        if check:
+            if hafnium.hafnium_request(data):
+                if hafnium.db_queue('hafnium_scan', data):
+                    return {'status': 'queued'}
+                else:
+                    return {'status': 'error',
+                            'message': 'Queue Failure'}
+            else:
+                return {'status': 'error',
+                        'message': 'DB Write Failure'}
+        else:
+            return {'status': check['status']}
