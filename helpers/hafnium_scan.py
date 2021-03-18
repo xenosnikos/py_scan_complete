@@ -1,17 +1,9 @@
-import os
-from flask_restful import Resource, reqparse, request, inputs
 import socket, threading
 import dns.resolver
-import pymongo
-from datetime import datetime, timedelta
-import validators
-from helpers import auth_check
 import requests
 import nmap
 from queue import Queue
-import time
 from helpers import hafnium, logs
-
 
 data = {}
 issue_found = False
@@ -84,7 +76,7 @@ def process(scan):
     mx_cloud_records = {}
     mx_patch_status = {}
 
-    logs.Logging.add('hafnium scan', 'scan start', target)
+    logs.Logging.add('hafnium scan', target, 'scan start', 'starting')
 
     try:
         for mx_record in dns.resolver.query(target, 'MX'):
@@ -93,12 +85,12 @@ def process(scan):
                            str(mx_record.exchange)[len(str(mx_record.exchange)) - 1] == '.' else
                            str(mx_record.exchange))
     except:
-        return {
-            target: {'No MX': 'None'}
-        }
+        resp = {'domain': scan['domain'], 'output': {scan['domain']: {'No MX': 'None'}}}
+        hafnium.db_queue('hafnium_response', resp)
+        return
 
     for each in mx_records:
-        logs.Logging.add('hafnium scan', 'start mx record', each)
+        logs.Logging.add('hafnium scan', target, f'resolving ips and determining patch status of {each}', 'starting')
         try:
             ip = socket.gethostbyname(each)
         except:
@@ -120,6 +112,8 @@ def process(scan):
         else:
             mx_cloud_records[each] = 'Cloud'
 
+        logs.Logging.add('hafnium scan', target, f'resolved ip and determining patch status of {each}', 'starting')
+
     if len(mx_on_prem_records) == 0:
         breach_outputs[target] = mx_cloud_records
 
@@ -127,7 +121,7 @@ def process(scan):
 
     for target_value, target_ip in mx_on_prem_records.items():
 
-        logs.Logging.add('hafnium scan', 'start on prem check', target_value)
+        logs.Logging.add('hafnium scan', target, 'starting on prem check', target_value)
 
         ip_breaches = {}
 
@@ -159,11 +153,11 @@ def process(scan):
             mx_outputs.update(mx_cloud_records)
         mx_outputs[target_value] = ip_breaches
 
-        logs.Logging.add('hafnium scan', 'finish on prem check', target_value)
+        logs.Logging.add('hafnium scan', target, 'finished on prem check', 'complete')
 
         breach_outputs[target] = mx_outputs
 
-    logs.Logging.add('hafnium scan', 'scan complete', scan['domain'])
+    logs.Logging.add('hafnium scan', target, 'scan of all records complete', 'sending to the response queue')
 
     response = {'domain': scan['domain'], 'output': breach_outputs}
 

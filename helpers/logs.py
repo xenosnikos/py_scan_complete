@@ -9,8 +9,9 @@ db = client.test
 class Logging:
 
     @staticmethod
-    def add(process, action, result):
+    def add(process, on, action, result):
         value = {'process': process,
+                 'on': on,
                  'action': action,
                  'result': result,
                  'when': datetime.utcnow()}

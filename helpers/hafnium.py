@@ -14,7 +14,7 @@ db = client.test
 
 
 def db_queue(queue_name, data):
-    queue = Queue(name=queue_name, connection=queue_connection)
+    queue = Queue(name=queue_name, connection=queue_connection, default_timeout=-1)
     if queue_name == 'hafnium_response':
         worker = queue_to_db.hafnium_response_db_addition
     elif queue_name == 'hafnium_scan':
@@ -32,7 +32,7 @@ def hafnium_request(data):
         if 'status' in data:
             db.hafnium.find_one_and_update({'domain': data['domain']}, {'$set': {'status': data['status']}})
         else:
-            db.hafnium.insert_one({'domain': data['domain'], 'status': 'queued'})
+            db.hafnium.update_one({'domain': data['domain']}, {'$set': {'status': 'queued'}}, upsert=True)
     except:
         return False
     return True
@@ -50,14 +50,21 @@ def check_force(data, force):
         return True
     search = db.hafnium.find_one({'domain': data['domain']})
     if search is not None:
+        if search['status'] == 'running' or search['status'] == 'queued':
+            return search['status']
         force = search['timeStamp'] + timedelta(days=1) < datetime.utcnow()
 
-    if force is False:
-        return search
-    else:
-        return force
+    if force is True and search is not None:
+        return True
+    elif force is False and search is not None:
+        return search['status']
+    elif force is False:
+        return True
 
 
 def hafnium_response(domain):
     resp = db.hafnium.find_one({'domain': domain})
-    return resp['output']
+    if resp is not None:
+        return resp['output']
+    else:
+        return 404

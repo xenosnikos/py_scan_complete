@@ -1,4 +1,3 @@
-from helpers import hafnium
 from flask_restful import Resource, reqparse, request
 from helpers import auth_check, hafnium
 
@@ -25,4 +24,11 @@ class HafniumScanResponse(Resource):
                 'message': f"{args['domain']} is not a valid domain, please try again"
             }, 400
 
-        return hafnium.hafnium_response(args['domain']), 200
+        resp = hafnium.hafnium_response(args['domain'])
+
+        if resp == 404:
+            return {
+                       'message': f"{args['domain']} is not scanned, please try again"
+                   }, 404
+        else:
+            return resp, 200
