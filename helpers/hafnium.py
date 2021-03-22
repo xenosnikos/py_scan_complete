@@ -65,6 +65,9 @@ def check_force(data, force):
 def hafnium_response(domain):
     resp = db.hafnium.find_one({'domain': domain})
     if resp is not None:
-        return resp['output']
+        if 'output' in resp:
+            return resp['output']
+        else:
+            return {'status': resp['status']}
     else:
         return 404

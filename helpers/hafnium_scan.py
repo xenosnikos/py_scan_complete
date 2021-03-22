@@ -9,7 +9,6 @@ data = {}
 issue_found = False
 count = 0
 q = Queue()
-exit_event = threading.Event()
 
 
 class HafniumScan():
@@ -18,12 +17,18 @@ class HafniumScan():
     def ep_check(url):
         global data, issue_found, count
         try:
-            resp = requests.get(url=url, verify=False)
+            resp = requests.get(url=url, verify=False, timeout=300)
         except requests.exceptions.ConnectionError:
             data[url] = 'Connection Refused'
             return
         except requests.exceptions.TooManyRedirects:
             data[url] = 'Too many Redirects'
+            return
+        except requests.exceptions.ReadTimeout:
+            data[url] = 'Read Timeout'
+            return
+        except Exception as e:
+            data[url] = 'Request exception'
             return
 
         if resp.status_code == 200:
