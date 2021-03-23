@@ -1,7 +1,7 @@
 import os
 from flask_restful import Resource, reqparse, request, inputs
 import socket
-from redis import Redis
+import redis
 from rq import Retry, Queue
 import pymongo
 from datetime import datetime, timedelta
@@ -11,7 +11,7 @@ from helpers import auth_check, queue_to_db, spoofcheck
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
 
-add_to_db = Queue(name='spoofCheck_db_queue', connection=Redis(host=os.environ.get('REDIS_HOST'), port=os.environ.get('REDIS_PORT')))
+add_to_db = Queue(name='spoofCheck_db_queue', connection=redis.from_url(url='rediss://default:kzodr4urcjdpew09@pyscan-redis-stage-do-user-8532994-0.b.db.ondigitalocean.com:25061'))
 
 portscan_args = reqparse.RequestParser()
 

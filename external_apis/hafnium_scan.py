@@ -9,12 +9,16 @@ from helpers import auth_check
 import requests
 import nmap
 from queue import Queue
+<<<<<<< HEAD
 
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
+=======
+import time
+
+>>>>>>> hafnium
 
 portscan_args = reqparse.RequestParser()
-
 portscan_args.add_argument('value', help='Domain is required to scan', required=True, action='append')
 portscan_args.add_argument('companyId', help='Company ID is required to associate scan results', required=True)
 portscan_args.add_argument('domainId', help='Domain ID is required to associate company with different domains',
@@ -26,6 +30,11 @@ data = {}
 issue_found = False
 count = 0
 q = Queue()
+<<<<<<< HEAD
+=======
+exit_event = threading.Event()
+
+>>>>>>> hafnium
 
 class HafniumScan(Resource):
 
@@ -66,6 +75,10 @@ class HafniumScan(Resource):
             worker = q.get()
             HafniumScan.ep_check(worker)
             q.task_done()
+<<<<<<< HEAD
+=======
+            break
+>>>>>>> hafnium
 
     @staticmethod
     def post():
@@ -80,7 +93,6 @@ class HafniumScan(Resource):
         args = portscan_args.parse_args()
 
         breach_outputs = {}
-        db.hafniumScan.create_index([('value', pymongo.ASCENDING), ('mx_record', pymongo.ASCENDING)])
 
         check_ep = ('shellex.aspx', 'iistart.aspx', 'one.aspx', 't.aspx', 'aspnettest.aspx', 'error.aspx',
                     'discover.aspx', 'supp0rt.aspx', 'shell.aspx', 'HttpProxy.aspx', '0QWYSEXe.aspx', 'load.aspx',
@@ -117,7 +129,11 @@ class HafniumScan(Resource):
                 try:
                     ip = socket.gethostbyname(each)
                 except:
+<<<<<<< HEAD
                     mx_cloud_records['No MX'] = 'None'
+=======
+                    mx_cloud_records[each] = 'Cannot resolve IP'
+>>>>>>> hafnium
                     continue
                 nmap_patch = nmap.PortScanner()
                 patch_check = nmap_patch.scan(hosts=ip, ports='443', arguments='--script=/usr/local/share/nmap'
@@ -145,7 +161,9 @@ class HafniumScan(Resource):
 
             for target_value, target_ip in mx_on_prem_records.items():
                 print(target_value)
+                ip_breaches = {}
 
+<<<<<<< HEAD
                 # see if we have an existing scan for given value and pull the latest
                 search = db.hafniumScan.find_one({'value': target, 'mx_record': target_value},
                                                  sort=[('_id', pymongo.DESCENDING)])
@@ -206,12 +224,38 @@ class HafniumScan(Resource):
 
                         # add_to_db.enqueue(queue_to_db.hafnium_db_addition, message,
                         #                   retry=Retry(max=3, interval=[10, 30, 60]))
+=======
+                for x in range(84):
+                    t = threading.Thread(target=HafniumScan.threader, daemon=False)
+                    t.start()
 
-                else:
-                    del search['_id']
-                    del search['timeStamp']
-                    mx_outputs[target_value] = search
+                data = {}
+                issue_found = False
+                count = 0
+
+                for folder in folders:
+                    for endpoint in check_ep:
+                        url = None
+                        print(folder+endpoint)
+                        url = f"https://{target_value}{folder}{endpoint}"
+>>>>>>> hafnium
+
+                        q.put(url)
+
+                q.join()
+
+                ip_breaches['ip'] = target_ip
+                ip_breaches['patch_status'] = mx_patch_status[target_value]
+                ip_breaches['type'] = 'on-prem'
+                ip_breaches['breached'] = issue_found
+                ip_breaches['count'] = count
+                ip_breaches['data'] = data
+
+                if len(mx_cloud_records) != 0:
+                    mx_outputs.update(mx_cloud_records)
+                mx_outputs[target_value] = ip_breaches
 
             breach_outputs[target] = mx_outputs
+            time.sleep(2)
 
         return breach_outputs

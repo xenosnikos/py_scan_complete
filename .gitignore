@@ -1,5 +1,8 @@
-logs/port_scan.log
-logs/sslyze_scan.log
-logs/add_to_db.log
+logs
 .idea
 .env
+venv
+helpers/trustymail/.idea
+helpers/__pycache__
+external_apis/__pycache__
+__pycache__
