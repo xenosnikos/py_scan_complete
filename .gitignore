@@ -1,5 +1,7 @@
 logs
 .idea
 .env
-.venv
+venv
 helpers/trustymail/.idea
+helpers/__pycache__
+external_apis/__pycache__
