@@ -15,6 +15,15 @@ def process(scan):
         breach_outputs['Error'] = 'Cannot resolve IP'
         return breach_outputs
 
+    error = {
+        "supported_encryption_protocols": 'Cannot scan for supported encryption protocols (RDP possibly false positive)',
+        "unsupported_encryption_protocols": 'Cannot scan for unsupported encryption protocols (RDP possibly false positive)',
+        "error_messages": 'Cannot scan to retrieve error messages (RDP possibly false positive)',
+        "supported_encryption_methods": 'Cannot scan for supported encryption methods (RDP possibly false positive)',
+        "unsupported_encryption_methods": 'Cannot scan for unsupported encryption methods (RDP possibly false positive)',
+        "server_encryption_level": 'Cannot scan for encryption level (RDP possibly false positive)'
+    }
+
     try:
         enum_encryption = rdp_check_ciphers.rdp_scan(ip, 3389)
         if enum_encryption != 'Cannot connect':
@@ -24,9 +33,9 @@ def process(scan):
             if enum_encryption != 'Cannot connect':
                 breach_outputs.update(enum_encryption)
             else:
-                breach_outputs['Error'] = 'Cannot scan for Ciphers'
+                breach_outputs.update(error)
     except:
-        breach_outputs['Error'] = 'Cannot scan for Ciphers'
+        breach_outputs.update(error)
 
     nmap_patch = nmap.PortScanner()
 
@@ -53,20 +62,28 @@ def process(scan):
         rdp_ntlm_info_results_dict = dict((x.strip(), y.strip())
                                           for x, y in (element.split('::')
                                                        for element in rdp_ntlm_info_modified.split(',, ')))
-        breach_outputs['new technology LAN manager'] = rdp_ntlm_info_results_dict
+        breach_outputs['ntlm'] = rdp_ntlm_info_results_dict
     else:
-        breach_outputs['new technology LAN manager'] = None
+        breach_outputs['ntlm'] = None
 
     risk = None
 
-    if breach_outputs['new technology LAN manager'] is not None:
-        risk = 'Medium'
+    if breach_outputs['ntlm'] is None:
+        logs.Logging.add('rdp scan', scan['value'], f'RDP scan ntlm failed', 'skipping ntlm results')
+    else:
+        if breach_outputs['ntlm'] is not None:
+            risk = 'Medium'
 
-    if 'Native RDP' in breach_outputs['supported_encryption_protocols'] or 'SSL' in breach_outputs['supported_encryption_protocols']:
-        risk = 'High'
+    if breach_outputs["unsupported_encryption_protocols"] == 'Cannot scan for unsupported encryption protocols (RDP possibly false positive)':
+        logs.Logging.add('rdp scan', scan['value'], f'RDP scan for enum encryption failed', 'skipping enum results')
+    else:
+        if 'Native RDP' in breach_outputs['supported_encryption_protocols'] or \
+                'SSL' in breach_outputs['supported_encryption_protocols']:
+            risk = 'Very High'
 
-    if 'CredSSP (NLA)' not in breach_outputs['supported_encryption_protocols'] or 'RDSTLS' not in breach_outputs['supported_encryption_protocols']:
-        risk = 'High'
+        if 'CredSSP (NLA)' not in breach_outputs['supported_encryption_protocols'] or \
+                'RDSTLS' not in breach_outputs['supported_encryption_protocols']:
+            risk = 'High'
 
     breach_outputs['risk'] = risk
 

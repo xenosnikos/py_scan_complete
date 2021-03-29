@@ -35,7 +35,7 @@ def rdp_scan(host, port):
     # Error messages
     error_messages = {"\x01": "SSL_REQUIRED_BY_SERVER", "\x02": "SSL_NOT_ALLOWED_BY_SERVER",
                       "\x03": "SSL_CERT_NOT_ON_SERVER", "\x04": "INCONSISTENT_FLAGS",
-                      "\x05": "HYBRID_REQUIRED_BY_SERVER"}
+                      "\x05": "HYBRID_REQUIRED_BY_SERVER", "\x06": "SSL_WITH_USER_AUTH_REQUIRED_BY_SERVER"}
 
     # Supported encryption protocols, methods and levels
     enc_protocols = {"\x00": ["Native RDP", False], "\x01": ["SSL", False], "\x03": ["CredSSP (NLA)", False],
@@ -185,6 +185,7 @@ def rdp_scan(host, port):
     output = {
         "supported_encryption_protocols": supported_encryption_protocols,
         "unsupported_encryption_protocols": unsupported_encryption_protocols,
+        "error_messages": error_messages_out,
         "supported_encryption_methods": supported_encryption_methods,
         "unsupported_encryption_methods": unsupported_encryption_methods,
         "server_encryption_level": server_encryption_level
