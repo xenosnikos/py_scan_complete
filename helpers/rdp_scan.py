@@ -66,7 +66,7 @@ def process(scan):
     else:
         breach_outputs['ntlm'] = None
 
-    risk = None
+    risk = 'Security:TBD'
 
     if breach_outputs['ntlm'] is None:
         logs.Logging.add('rdp scan', scan['value'], f'RDP scan ntlm failed', 'skipping ntlm results')
@@ -74,7 +74,8 @@ def process(scan):
         if breach_outputs['ntlm'] is not None:
             risk = 'Medium'
 
-    if breach_outputs["unsupported_encryption_protocols"] == 'Cannot scan for unsupported encryption protocols (RDP possibly false positive)':
+    if breach_outputs["unsupported_encryption_protocols"] == 'Cannot scan for unsupported encryption protocols (RDP ' \
+                                                             'possibly false positive)':
         logs.Logging.add('rdp scan', scan['value'], f'RDP scan for enum encryption failed', 'skipping enum results')
     else:
         if 'Native RDP' in breach_outputs['supported_encryption_protocols'] or \
