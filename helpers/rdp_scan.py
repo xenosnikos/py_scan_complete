@@ -15,6 +15,7 @@ def process(scan):
         breach_outputs['Error'] = 'Cannot resolve IP'
         return breach_outputs
 
+    port = 3389
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
@@ -23,11 +24,19 @@ def process(scan):
     except:
         connection_flag1 = False
 
-    try:
-        s.connect((ip, 3388))
-        connection_flag2 = True
-    except:
-        connection_flag2 = False
+    s.close()
+    connection_flag2 = False
+
+    if connection_flag1 is False:
+        s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s2.connect((ip, 3388))
+            port = 3388
+            connection_flag2 = True
+        except:
+            connection_flag2 = False
+
+        s2.close()
 
     if connection_flag1 is False and connection_flag2 is False:
         breach_outputs['risk'] = 'CLEAR'
@@ -84,7 +93,7 @@ def process(scan):
     else:
         breach_outputs['ntlm'] = None
 
-    risk = 'AT_RISK'
+    risk = 'CLEAR'
 
     if breach_outputs['ntlm'] is None:
         logs.Logging.add('rdp scan', scan['value'], f'RDP scan ntlm failed', 'skipping ntlm results')
