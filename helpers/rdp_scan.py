@@ -15,6 +15,24 @@ def process(scan):
         breach_outputs['Error'] = 'Cannot resolve IP'
         return breach_outputs
 
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    try:
+        s.connect((ip, 3389))
+        connection_flag1 = True
+    except:
+        connection_flag1 = False
+
+    try:
+        s.connect((ip, 3388))
+        connection_flag2 = True
+    except:
+        connection_flag2 = False
+
+    if connection_flag1 is False and connection_flag2 is False:
+        breach_outputs['risk'] = 'CLEAR'
+        return breach_outputs
+
     error = {
         "supported_encryption_protocols": 'Cannot scan for supported encryption protocols (RDP possibly false positive)',
         "unsupported_encryption_protocols": 'Cannot scan for unsupported encryption protocols (RDP possibly false positive)',
@@ -66,13 +84,13 @@ def process(scan):
     else:
         breach_outputs['ntlm'] = None
 
-    risk = 'Security:TBD'
+    risk = 'AT_RISK'
 
     if breach_outputs['ntlm'] is None:
         logs.Logging.add('rdp scan', scan['value'], f'RDP scan ntlm failed', 'skipping ntlm results')
     else:
         if breach_outputs['ntlm'] is not None:
-            risk = 'Medium'
+            risk = 'MEDIUM_RISK'
 
     if breach_outputs["unsupported_encryption_protocols"] == 'Cannot scan for unsupported encryption protocols (RDP ' \
                                                              'possibly false positive)':
@@ -80,11 +98,11 @@ def process(scan):
     else:
         if 'Native RDP' in breach_outputs['supported_encryption_protocols'] or \
                 'SSL' in breach_outputs['supported_encryption_protocols']:
-            risk = 'Very High'
+            risk = 'CRITICAL'
 
         if 'CredSSP (NLA)' not in breach_outputs['supported_encryption_protocols'] or \
                 'RDSTLS' not in breach_outputs['supported_encryption_protocols']:
-            risk = 'High'
+            risk = 'HIGH_RISK'
 
     breach_outputs['risk'] = risk
 
