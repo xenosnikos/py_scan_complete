@@ -76,11 +76,11 @@ class PortScan(Resource):
                 out = port_scan_rec.callback({'ip': ip,
                                               'type': 'fast'})
 
-                if len(out) >= 4:
+                if len(out) >= 3:
                     out = port_scan_rec.callback({'ip': ip,
                                                   'type': 'medium'})
 
-                if len(out) >= 8:
+                if len(out) >= 3:
                     out = port_scan_rec.callback({'ip': ip,
                                                   'type': 'slow'})
 

@@ -13,6 +13,8 @@ def process(scan):
         ip = socket.gethostbyname(scan['value'])
     except:
         breach_outputs['Error'] = 'Cannot resolve IP'
+        scan['output'] = breach_outputs
+        queue_to_db.rdp_response_db_addition(scan)
         return breach_outputs
 
     port = 3389
@@ -40,6 +42,8 @@ def process(scan):
 
     if connection_flag1 is False and connection_flag2 is False:
         breach_outputs['risk'] = 'CLEAR'
+        scan['output'] = breach_outputs
+        queue_to_db.rdp_response_db_addition(scan)
         return breach_outputs
 
     error = {
@@ -69,7 +73,9 @@ def process(scan):
     try:
         patch_check = nmap_patch.scan(hosts=ip, arguments='-p 3389,3388 -T4 -Pn -d --script rdp-ntlm-info')
     except:
-        breach_outputs[scan['value']] = 'Cannot RDP Scan'
+        breach_outputs['ntlm'] = 'Cannot scan NTLM'
+        scan['output'] = breach_outputs
+        queue_to_db.rdp_response_db_addition(scan)
         return breach_outputs
 
     if 'script' in patch_check['scan'][ip]['tcp'][3389] and \

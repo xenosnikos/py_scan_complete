@@ -3,6 +3,7 @@ from queue import Queue
 import pymongo
 import logging
 import os
+import time
 
 
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
@@ -21,20 +22,25 @@ ip = None
 def portscan(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        conx = s.connect((ip, port))
+        s.connect((ip, port))
         ports.append(port)
         with print_lock:
             print(port, 'is open')
-        conx.close()
+        s.close()
     except:
         pass
 
 
 def threader():
+    global countp
     while True:
         worker = q.get()
         portscan(worker)
         q.task_done()
+        time.sleep(0.1)
+        countp += 1
+        print(countp)
+        break
 
 
 def callback(body):
@@ -51,17 +57,17 @@ def callback(body):
         thread = 1000
     else:
         scan_list = db.portPriority.find({}, {'_id': 0, 'port': 1})
-        thread = int(os.environ.get('MAX_THREADS'))
+        # thread = int(os.environ.get('MAX_THREADS'))
+        thread = 1000
 
     for x in range(thread):
-        t = threading.Thread(target=threader)
+        t = threading.Thread(target=threader, daemon=False)
         t.start()
 
     for worker in scan_list:
         q.put(worker['port'])
 
     q.join()
-    t.join()
     obj = {}
     for each in ports:
         obj[str(each)] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
