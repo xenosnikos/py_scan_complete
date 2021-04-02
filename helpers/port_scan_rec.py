@@ -3,7 +3,6 @@ from queue import Queue
 import pymongo
 import logging
 import os
-import time
 
 
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
@@ -32,15 +31,12 @@ def portscan(port):
 
 
 def threader():
-    global countp
     while True:
         worker = q.get()
         portscan(worker)
         q.task_done()
-        time.sleep(0.1)
-        countp += 1
-        print(countp)
-        break
+        if q.empty():
+            break
 
 
 def callback(body):
@@ -53,19 +49,19 @@ def callback(body):
         scan_list = db.portPriority.find({'count': {'$gte': 100000}}, {'_id': 0, 'port': 1})
         thread = 153
     elif body['type'] == 'medium':
-        scan_list = db.portPriority.find({'count': {'$gte': 1000}}, {'_id': 0, 'port': 1})
+        scan_list = db.portPriority.find({'count': {'$lt': 100000, '$gte': 1000}}, {'_id': 0, 'port': 1})
         thread = 1000
     else:
-        scan_list = db.portPriority.find({}, {'_id': 0, 'port': 1})
-        # thread = int(os.environ.get('MAX_THREADS'))
-        thread = 1000
+        scan_list = db.portPriority.find({'count': {'$lt': 1000}}, {'_id': 0, 'port': 1})
+        thread = int(os.environ.get('MAX_THREADS'))
+        logging.info(f"Environment variable {os.environ.get('MAX_THREADS')} to Max Threads")
+
+    for worker in scan_list:
+        q.put(worker['port'])
 
     for x in range(thread):
         t = threading.Thread(target=threader, daemon=False)
         t.start()
-
-    for worker in scan_list:
-        q.put(worker['port'])
 
     q.join()
     obj = {}
