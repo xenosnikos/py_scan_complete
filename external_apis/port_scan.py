@@ -15,7 +15,7 @@ client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
 
 add_to_db = Queue(name='portScan_db_queue', connection=redis.from_url(url=os.environ.get('REDIS_CONN_STRING')), default_timeout=-1)
-logging.info(f"Environment variable {os.environ.get('API_KEY_VIEW_DNS')} to Redis Conn String")
+logging.info(f"Environment variable {os.environ.get('REDIS_CONN_STRING')} to Redis Conn String")
 portscan_args = reqparse.RequestParser()
 
 portscan_args.add_argument('value', help='Domain or IP is required to scan', required=True)
@@ -78,6 +78,7 @@ class PortScan(Resource):
                 # Our internal port scan with multithreading
                 out1 = port_scan_rec.callback({'ip': ip,
                                               'type': 'fast'})
+                logging.info(f"Output of out1, {out1}")
 
                 if len(out1) >= 3:
                     out2 = port_scan_rec.callback({'ip': ip,

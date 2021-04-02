@@ -20,8 +20,10 @@ ip = None
 
 def portscan(port):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    logging.info(f"s created, {s}")
     try:
         s.connect((ip, port))
+        logging.info(f"Connection successful, {s}")
         ports.append(port)
         with print_lock:
             print(port, 'is open')
@@ -47,21 +49,28 @@ def callback(body):
 
     if body['type'] == 'fast':
         scan_list = db.portPriority.find({'count': {'$gte': 100000}}, {'_id': 0, 'port': 1})
+        logging.info(f"Output of scan_list1, {scan_list}")
         thread = 153
     elif body['type'] == 'medium':
         scan_list = db.portPriority.find({'count': {'$lt': 100000, '$gte': 1000}}, {'_id': 0, 'port': 1})
+        logging.info(f"Output of scan_list2, {scan_list}")
         thread = 1000
     else:
         scan_list = db.portPriority.find({'count': {'$lt': 1000}}, {'_id': 0, 'port': 1})
+        logging.info(f"Output of scan_list3, {scan_list}")
         thread = int(os.environ.get('MAX_THREADS'))
         logging.info(f"Environment variable {os.environ.get('MAX_THREADS')} to Max Threads")
 
     for worker in scan_list:
         q.put(worker['port'])
 
+    logging.info(f"Worker puts done, {q.qsize()}")
+
     for x in range(thread):
         t = threading.Thread(target=threader, daemon=False)
         t.start()
+
+    logging.info(f"Threads created")
 
     q.join()
     obj = {}
