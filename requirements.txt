@@ -42,3 +42,5 @@ colorama
 py-emailprotections
 dnslib
 tldextract
+argparse
+aiodnsbrute

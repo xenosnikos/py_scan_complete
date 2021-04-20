@@ -60,3 +60,13 @@ def hafnium_response_db_addition(value):
 def rdp_response_db_addition(value):
     db.rdp.find_one_and_update({'value': value['value']}, {'$set': {'status': 'finished', 'timeStamp': datetime.utcnow(), 'output': value['output']}})
     logs.Logging.add('RDP scan', value['value'], 'adding completed records to DB', 'job complete')
+
+
+def expansion_response_db_addition(value):
+    output = {
+        'value': value['value'],
+        'count': value['count'],
+        'sub_domains': value['sub_domains']
+    }
+    db.expansion.find_one_and_update({'value': value['value']}, {'$set': {'status': 'finished', 'timeStamp': datetime.utcnow(), 'output': output}})
+    logs.Logging.add('Expansion scan', value['value'], 'adding completed records to DB', 'job complete')

@@ -48,7 +48,8 @@ def process(scan):
 
     error = {
         "supported_encryption_protocols": 'Cannot scan for supported encryption protocols (RDP possibly false positive)',
-        "unsupported_encryption_protocols": 'Cannot scan for unsupported encryption protocols (RDP possibly false positive)',
+        "unsupported_encryption_protocols": 'Cannot scan for unsupported encryption protocols (RDP possibly false '
+                                            'positive)',
         "error_messages": 'Cannot scan to retrieve error messages (RDP possibly false positive)',
         "supported_encryption_methods": 'Cannot scan for supported encryption methods (RDP possibly false positive)',
         "unsupported_encryption_methods": 'Cannot scan for unsupported encryption methods (RDP possibly false positive)',

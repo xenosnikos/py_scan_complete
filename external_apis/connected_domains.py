@@ -18,10 +18,6 @@ add_to_db = Queue(name='connectedDomains_db_queue', connection=Redis(host=os.env
 portscan_args = reqparse.RequestParser()
 
 portscan_args.add_argument('value', help='Domain or IP is required to scan', required=True)
-portscan_args.add_argument('companyId', help='Company ID is required to associate scan results', required=True)
-portscan_args.add_argument('domainId', help='Domain ID is required to associate company with different domains',
-                           required=True)
-portscan_args.add_argument('connectedDomains', type=inputs.boolean, default=False)
 portscan_args.add_argument('force', type=inputs.boolean, default=False)
 
 
