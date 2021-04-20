@@ -12,5 +12,6 @@ raw_env = [
     "REDIS_CONN_STRING=rediss://default:kzodr4urcjdpew09@pyscan-redis-stage-do-user-8532994-0.b.db.ondigitalocean.com:25061",
     "API_KEY_VIEW_DNS=b8a855fbba7483b74948d6089b9744f8701319bb",
     "API_KEY_WHOIS_XML=at_kn7G0qh3FLqaSpjYNDuYX6eZ1kf9h",
+    "VT_APIKEY=01816d1e843975643b1c3b55dcd567aec77d1103495b464ed1e5f25b0c749fed",
     "MAX_THREADS=1500"
 ]
