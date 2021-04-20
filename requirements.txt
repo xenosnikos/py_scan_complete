@@ -44,3 +44,4 @@ dnslib
 tldextract
 argparse
 aiodnsbrute
+anubis-netsec
