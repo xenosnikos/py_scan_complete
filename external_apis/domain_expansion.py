@@ -1,7 +1,7 @@
 from helpers import utils
 from flask_restful import Resource, reqparse, request, inputs
 from helpers import auth_check, anubis_domain_expansion, queue_to_db
-from helpers.Sublist3r2 import sublist3r2
+from helpers import sublist3r2
 
 request_args = reqparse.RequestParser()
 request_args.add_argument('value', help='Value of a domain is required', required=True)
