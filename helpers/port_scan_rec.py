@@ -4,11 +4,11 @@ import pymongo
 import logging
 import os
 
-
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
 
-logging.basicConfig(filename='../logs/port_scan.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
+logging.basicConfig(filename='../logs/port_scan.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+                    level=logging.INFO)
 
 socket.setdefaulttimeout(3)
 print_lock = threading.Lock()
@@ -28,7 +28,12 @@ def portscan(port):
         with print_lock:
             print(port, 'is open')
         s.close()
-    except:
+    except ConnectionRefusedError:
+        logging.info(f"Connection refused, {s}")
+        ports.append(port)
+        with print_lock:
+            print(port, 'is being refused')
+    except socket.timeout:
         pass
 
 
@@ -42,6 +47,7 @@ def threader():
 
 
 def callback(body):
+    global ports
     logging.info(f'message {body} from queue is received')
     print(" [x] Received %r" % body)
     global ip
@@ -54,15 +60,19 @@ def callback(body):
     elif body['type'] == 'medium':
         scan_list = db.portPriority.find({'count': {'$lt': 100000, '$gte': 1000}}, {'_id': 0, 'port': 1})
         logging.info(f"Output of scan_list2, {scan_list}")
-        thread = 1000
+        thread = 800
     else:
-        scan_list = db.portPriority.find({'count': {'$lt': 1000}}, {'_id': 0, 'port': 1})
+        # scan_list = db.portPriority.find({'count': {'$lt': 1000}}, {'_id': 0, 'port': 1})
+        scan_list = range(1, 65536)
         logging.info(f"Output of scan_list3, {scan_list}")
         thread = int(os.environ.get('MAX_THREADS'))
         logging.info(f"Environment variable {os.environ.get('MAX_THREADS')} to Max Threads")
 
     for worker in scan_list:
-        q.put(worker['port'])
+        if type(worker) is dict:
+            q.put(worker['port'])
+        else:
+            q.put(worker)
 
     logging.info(f"Worker puts done, {q.qsize()}")
 
@@ -79,6 +89,7 @@ def callback(body):
     # db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanStatus': 'finished', 'openPorts': obj}})
     print('done')
     logging.info(f'message {body} from queue is complete')
+    ports = []
     return obj
 
 

@@ -14,7 +14,7 @@ import logging
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
 
-add_to_db = Queue(name='portScan_db_queue', connection=redis.from_url(url=os.environ.get('REDIS_CONN_STRING')), default_timeout=-1)
+# add_to_db = Queue(name='portScan_db_queue', connection=redis.from_url(url=os.environ.get('REDIS_CONN_STRING')), default_timeout=-1)
 logging.info(f"Environment variable {os.environ.get('REDIS_CONN_STRING')} to Redis Conn String")
 portscan_args = reqparse.RequestParser()
 
@@ -89,7 +89,9 @@ class PortScan(Resource):
                         out3 = port_scan_rec.callback({'ip': ip,
                                                       'type': 'slow'})
 
-                list_scans['internalPortScan'] = out1.update(out3)
+                        out1.update(out3)
+
+                list_scans['internalPortScan'] = out1
             else:
                 return {
                            'message': f'{val} is not a valid IP or Domain, please try again'
@@ -102,6 +104,6 @@ class PortScan(Resource):
         message = {'mongo': str(item),
                    'data': list_scans}
 
-        add_to_db.enqueue(queue_to_db.port_scan_db_addition, message, retry=Retry(max=3, interval=[10, 30, 60]))
+        # add_to_db.enqueue(queue_to_db.port_scan_db_addition, message, retry=Retry(max=3, interval=[10, 30, 60]))
 
         return list_scans
