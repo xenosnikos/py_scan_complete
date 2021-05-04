@@ -19,22 +19,22 @@ ip = None
 
 
 def portscan(port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    logging.info(f"s created, {s}")
-    try:
-        s.connect((ip, port))
-        logging.info(f"Connection successful, {s}")
-        ports.append(port)
-        with print_lock:
-            print(port, 'is open')
-        s.close()
-    except ConnectionRefusedError:
-        logging.info(f"Connection refused, {s}")
-        ports.append(port)
-        with print_lock:
-            print(port, 'is being refused')
-    except socket.timeout:
-        pass
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        logging.info(f"s created, {s}")
+        try:
+            s.connect((ip, port))
+            logging.info(f"Connection successful, {s}")
+            ports.append(port)
+            with print_lock:
+                print(port, 'is open')
+            s.close()
+        except ConnectionRefusedError:
+            logging.info(f"Connection refused, {s}")
+            ports.append(port)
+            with print_lock:
+                print(port, 'is being refused')
+        except socket.timeout:
+            pass
 
 
 def threader():

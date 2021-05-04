@@ -13,5 +13,8 @@ raw_env = [
     "API_KEY_VIEW_DNS=b8a855fbba7483b74948d6089b9744f8701319bb",
     "API_KEY_WHOIS_XML=at_kn7G0qh3FLqaSpjYNDuYX6eZ1kf9h",
     "VT_APIKEY=01816d1e843975643b1c3b55dcd567aec77d1103495b464ed1e5f25b0c749fed",
+    "DARWEB_BASIC_TOKEN=Basic ZmkwODJsMm03cDhuYmdrYXV1M2kzdTM3bTo0ZW5pY3Q1bmo3anBwYnU0ZWRjOGE2cTEycGx1cXF0MjgzbmJvamdkZzFqZHRka2Z1b2s=",
+    "DARWEB_AUTH=https://compromise-engine.auth.us-west-2.amazoncognito.com/oauth2/token?grant_type=client_credentials",
+    "DARWEB_HOST=https://prod.api.darkwebid.io/v1",
     "MAX_THREADS=1500"
 ]
