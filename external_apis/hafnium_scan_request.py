@@ -35,7 +35,7 @@ class HafniumScanRequest(Resource):
 
         check = hafnium.check_force(data, force)
 
-        if check == 'finished' or check == 'running':
+        if check == 'finished' or check == 'running' or check == 'queued':
             return {'status': check}
 
         if check:

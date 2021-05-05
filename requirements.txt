@@ -1,7 +1,6 @@
-pymongo
+pymongo[srv]
 flask
 flask_restful
-dnspython
 validators
 lxml~=4.6.2
 idna~=2.10
@@ -36,8 +35,13 @@ publicsuffix>=1.1.0
 py3dns>=3.1.0
 pyspf==2.0.11
 gunicorn
-dnslib
-tldextract
 docopt
 trustymail
 python-nmap
+colorama
+py-emailprotections
+dnslib
+tldextract
+argparse
+aiodnsbrute
+anubis-netsec
