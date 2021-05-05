@@ -41,7 +41,7 @@ def scan(data_input):
                 "email": each['email'],
                 "password": each['password'] if each['password'] is None or len(each['password']) < 4 else each['password'].replace(each['password'][4:], len(each['password'][4:])*'X')[:10],
                 "breach": each['breach'],
-                "found": each['timeline']['sort_date'],
+                "found": each['sort_date'],
                 "source": each['source'],
                 "pii": each['pii'] if 'pii' in each else [],
                 "hash": each['hashType']
