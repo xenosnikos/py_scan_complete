@@ -85,11 +85,11 @@ class PortScan(Resource):
                                                   'type': 'medium'})
                     out1.update(out2)
 
-                    if len(out2) >= 1:
-                        out3 = port_scan_rec.callback({'ip': ip,
-                                                      'type': 'slow'})
-
-                        out1.update(out3)
+                    # if len(out1) >= 4:
+                    #     out3 = port_scan_rec.callback({'ip': ip,
+                    #                                   'type': 'slow'})
+                    #
+                    #     out1.update(out3)
 
                 list_scans['internalPortScan'] = out1
             else:

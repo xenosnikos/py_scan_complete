@@ -8,8 +8,8 @@ from helpers import logs
 client = pymongo.MongoClient("mongodb+srv://stage:2rHOWa6oIFu0ckLG@cluster0.o5uwc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
 db = client.test
 
-logging.basicConfig(filename='logs/add_to_db.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
-                    level=logging.INFO)
+# logging.basicConfig(filename='logs/add_to_db.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+#                     level=logging.INFO)
 
 
 def port_scan_db_addition(value):
