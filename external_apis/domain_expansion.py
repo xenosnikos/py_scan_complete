@@ -6,6 +6,7 @@ from helpers import sublist3r2
 request_args = reqparse.RequestParser()
 request_args.add_argument('value', help='Value of a domain is required', required=True)
 request_args.add_argument('force', type=inputs.boolean, required=False, default=False)
+request_args.add_argument('ip', type=inputs.boolean, required=False, default=False)
 
 
 class DomainExpansion(Resource):
@@ -48,8 +49,11 @@ class DomainExpansion(Resource):
                                                   verbose=False, enable_bruteforce=False, savefile=None, silent=False)
                 output_anubis = anubis_domain_expansion.main_scan(data)
                 output_set = set(output_sublistr + output_anubis)
+                formatted_output = utils.format_by_ip(output_set, args['ip'])
                 out['count'] = len(output_set)
-                out['sub_domains'] = list(output_set)
+                if args['ip']:
+                    out['unique_ips'] = len(formatted_output)
+                out['sub_domains'] = formatted_output
                 queue_to_db.expansion_response_db_addition(out)
                 return out, 200
             else:

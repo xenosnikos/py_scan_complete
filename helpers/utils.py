@@ -1,3 +1,5 @@
+import socket
+
 import validators
 import pymongo
 from datetime import datetime, timedelta
@@ -46,3 +48,25 @@ def mark_db_request(data, collection):
     except:
         return False
     return True
+
+
+def format_by_ip(sub_domains, out_format):
+    out_dict = {}
+    out_list = []
+
+    for each in sub_domains:
+        try:
+            ip = socket.gethostbyname(each)
+            if out_format:
+                if ip in out_dict:
+                    out_dict[ip] += [each]
+                else:
+                    out_dict[ip] = [each]
+            else:
+                out_list.append(each)
+        except:
+            pass
+    if out_format:
+        return out_dict
+    else:
+        return out_list
