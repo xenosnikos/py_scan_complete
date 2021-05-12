@@ -45,3 +45,4 @@ tldextract
 argparse
 aiodnsbrute
 anubis-netsec
+pydnsbl
