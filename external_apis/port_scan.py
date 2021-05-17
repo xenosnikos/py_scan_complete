@@ -64,14 +64,15 @@ class PortScan(Resource):
                 list_scans['value'] = val
 
                 # calling api with retries and backoff_factor
-                session = retry_session()
-                resp = session.get(f"https://api.viewdns.info/portscan/?host={val}&apikey="
-                                   f"{os.environ.get('API_KEY_VIEW_DNS')}&output=json")
-                logging.info(f"Environment variable {os.environ.get('API_KEY_VIEW_DNS')} to view DNS")
-                if resp.status_code == 200:
-                    out = json.loads(resp.content.decode())['response']
-
-                    list_scans['portScan'] = out['port']
+                # session = retry_session()
+                # resp = session.get(f"https://api.viewdns.info/portscan/?host={val}&apikey="
+                #                    f"{os.environ.get('API_KEY_VIEW_DNS')}&output=json")
+                # logging.info(f"Environment variable {os.environ.get('API_KEY_VIEW_DNS')} to view DNS")
+                # if resp.status_code == 200:
+                #     out = json.loads(resp.content.decode())['response']
+                #
+                #     list_scans['portScan'] = out['port']
+                list_scans['portScan'] = None
 
                 out3 = {}
 
