@@ -26,16 +26,12 @@ def portscan(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
             s.connect((ip, port))
-            logger.info(f"Connection successful, {s}")
             ports.append(port)
             with print_lock:
                 print(port, 'is open')
             # s.close()
         except ConnectionRefusedError:
             logger.info(f"Connection refused, port: {port}")
-            # ports.append(port)
-            # with print_lock:
-            #     print(port, 'is being refused')
         except socket.timeout:
             pass
         except Exception as e:
