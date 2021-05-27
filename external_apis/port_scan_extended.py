@@ -10,6 +10,7 @@ import validators
 from helpers import auth_check, queue_to_db, port_scan_rec
 from helpers.requests_retry import retry_session
 import logging
+import nmap
 
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
@@ -26,7 +27,7 @@ portscan_args.add_argument('portScan', type=inputs.boolean, default=False)
 portscan_args.add_argument('force', type=inputs.boolean, default=False)
 
 
-class PortScan(Resource):
+class PortScanExtended(Resource):
 
     @staticmethod
     def post():
@@ -43,7 +44,7 @@ class PortScan(Resource):
         val = args['value']
         db.portScan.create_index('value')
         # see if we have an existing scan for given value and pull the latest
-        search = db.portScan.find_one({'value': val}, sort=[('_id', pymongo.DESCENDING)])
+        search = db.portScanExtended.find_one({'value': val}, sort=[('_id', pymongo.DESCENDING)])
 
         # force comes in as false by default
         if args['force']:
@@ -63,36 +64,11 @@ class PortScan(Resource):
                 list_scans['ip'] = ip
                 list_scans['value'] = val
 
-                # calling api with retries and backoff_factor
-                # session = retry_session()
-                # resp = session.get(f"https://api.viewdns.info/portscan/?host={val}&apikey="
-                #                    f"{os.environ.get('API_KEY_VIEW_DNS')}&output=json")
-                # logging.info(f"Environment variable {os.environ.get('API_KEY_VIEW_DNS')} to view DNS")
-                # if resp.status_code == 200:
-                #     out = json.loads(resp.content.decode())['response']
-                #
-                #     list_scans['portScan'] = out['port']
-                list_scans['portScan'] = None
+                list_scans['port_scan_extended'] = None
 
-                out3 = {}
+                nmap_port_scan = nmap.PortScanner()
+                patch_check = nmap_port_scan.scan(hosts=val, ports='1-6000')
 
-                # Our internal port scan with multithreading
-                out1 = port_scan_rec.callback({'ip': ip,
-                                              'type': 'fast'})
-                logging.info(f"Output of out1, {out1}")
-
-                if len(out1) >= 3:
-                    out2 = port_scan_rec.callback({'ip': ip,
-                                                  'type': 'medium'})
-                    out1.update(out2)
-
-                    if len(out1) >= 4:
-                        out3 = port_scan_rec.callback({'ip': ip,
-                                                      'type': 'slow'})
-
-                        out1.update(out3)
-
-                list_scans['internalPortScan'] = out1
             else:
                 return {
                            'message': f'{val} is not a valid IP or Domain, please try again'

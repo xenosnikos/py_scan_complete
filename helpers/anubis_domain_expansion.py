@@ -120,10 +120,10 @@ class Target(Base):
                                         args=(self, target)),
                        threading.Thread(target=search_subject_alt_name,
                                         args=(self, target)),
-                       threading.Thread(target=search_netcraft, args=(self, target)),
+                       # threading.Thread(target=search_netcraft, args=(self, target)),
                        threading.Thread(target=search_crtsh, args=(self, target)),
-                       threading.Thread(target=search_dnsdumpster,
-                                        args=(self, target)),
+                       # threading.Thread(target=search_dnsdumpster,
+                       #                  args=(self, target)),
                        threading.Thread(target=search_anubisdb, args=(self, target))]
 
             # Additional options - shodan.io scan
@@ -158,8 +158,8 @@ class Target(Base):
             sub_domains = []
 
             for domain in self.dedupe:
-                cleaned_domain = domain.strip()
-                ColorPrint.green(cleaned_domain)
+                # cleaned_domain = domain.strip()
+                # ColorPrint.green(cleaned_domain)
                 sub_domains.append(domain)
 
             if self.options["--send-to-anubis-db"]:
@@ -204,7 +204,7 @@ def anubis_scan(scan, recursive):
                '--overwrite-nmap-scan': None,
                '--queue-workers': 10,
                '--recursive': False,
-               '--send-to-anubis-db': True,
+               '--send-to-anubis-db': False,
                '--silent': False,
                '--ssl': True,
                '--target': True,
