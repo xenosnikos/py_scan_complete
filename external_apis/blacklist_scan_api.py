@@ -1,14 +1,4 @@
-import os
 from flask_restful import Resource, reqparse, request, inputs
-import socket
-from redis import Redis
-from rq import Retry, Queue
-import json
-from helpers.requests_retry import retry_session
-import pymongo
-from datetime import datetime, timedelta
-import validators
-import pydnsbl
 from helpers import auth_check, utils, blacklist_scan
 
 request_args = reqparse.RequestParser()

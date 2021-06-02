@@ -9,9 +9,6 @@ import nmap
 
 portscan_args = reqparse.RequestParser()
 portscan_args.add_argument('value', help='Domain is required to scan', required=True, action='append')
-portscan_args.add_argument('companyId', help='Company ID is required to associate scan results', required=True)
-portscan_args.add_argument('domainId', help='Domain ID is required to associate company with different domains',
-                           required=True)
 portscan_args.add_argument('hafniumScan', type=inputs.boolean, default=False)
 portscan_args.add_argument('force', type=inputs.boolean, default=True)
 

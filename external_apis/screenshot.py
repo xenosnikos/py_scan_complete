@@ -8,18 +8,13 @@ import pymongo
 from datetime import datetime, timedelta
 import validators
 from helpers import auth_check, queue_to_db
+from helpers.mongo_connection import db
 
-client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
-db = client.test
-
-add_to_db = Queue(name='screenShot_db_queue', connection=Redis(host=os.environ.get('REDIS_HOST')))
+# add_to_db = Queue(name='screenShot_db_queue', connection=Redis(host=os.environ.get('REDIS_HOST')))
 
 portscan_args = reqparse.RequestParser()
 
 portscan_args.add_argument('value', help='Domain or IP is required to scan', required=True)
-portscan_args.add_argument('companyId', help='Company ID is required to associate scan results', required=True)
-portscan_args.add_argument('domainId', help='Domain ID is required to associate company with different domains',
-                           required=True)
 portscan_args.add_argument('screenShot', type=inputs.boolean, default=False)
 portscan_args.add_argument('force', type=inputs.boolean, default=False)
 
@@ -82,9 +77,9 @@ class ScreenShot(Resource):
             del search['timeStamp']
             return search
 
-        message = {'mongo': str(item),
-                   'data': list_scans}
-
-        add_to_db.enqueue(queue_to_db.screenshot_db_addition, message, retry=Retry(max=3, interval=[10, 30, 60]))
+        # message = {'mongo': str(item),
+        #            'data': list_scans}
+        #
+        # add_to_db.enqueue(queue_to_db.screenshot_db_addition, message, retry=Retry(max=3, interval=[10, 30, 60]))
 
         return list_scans

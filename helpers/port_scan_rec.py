@@ -18,11 +18,11 @@ socket.setdefaulttimeout(3)
 print_lock = threading.Lock()
 
 ports = []
-countp = 0
 ip = None
 
 
-def portscan(port):
+# Not in use after NMAP scanning, wanted to leave the code just in case
+def scan(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
             s.connect((ip, port))
@@ -41,43 +41,29 @@ def portscan(port):
 def threader():
     while True:
         worker = q.get()
-        portscan(worker)
+        scan(worker)
         q.task_done()
         if q.empty():
             break
 
 
-def callback(body):
+def port_scan(input_ip):
     global ports
-    logger.info(f'message {body} from queue is received')
-    print(" [x] Received %r" % body)
     global ip
-    ip = body['ip']
+    ip = input_ip
+    logger.info(f'message {ip} from queue is received')
+    print(" [x] Received %r" % ip)
 
-    if body['type'] == 'fast':
-        scan_list = db.portPriority.find({'count': {'$gte': 100000}}, {'_id': 0, 'port': 1})
-        logger.info(f"Output of scan_list1, {scan_list}")
-        thread = 153
-    elif body['type'] == 'medium':
-        scan_list = db.portPriority.find({'count': {'$lt': 100000, '$gte': 1000}}, {'_id': 0, 'port': 1})
-        logger.info(f"Output of scan_list2, {scan_list}")
-        thread = 800
-    else:
-        # scan_list = db.portPriority.find({'count': {'$lt': 1000}}, {'_id': 0, 'port': 1})
-        scan_list = range(1, 65536)
-        logger.info(f"Output of scan_list3, {scan_list}")
-        thread = int(os.environ.get('MAX_THREADS'))
-        logger.info(f"Environment variable {os.environ.get('MAX_THREADS')} to Max Threads")
+    scan_list = db.portPriority.find({'count': {'$gte': 1000}}, {'_id': 0, 'port': 1})
+    logger.info(f"Output of scan_list1, {scan_list}")
+    threads = 1000
 
     for worker in scan_list:
-        if type(worker) is dict:
-            q.put(worker['port'])
-        else:
-            q.put(worker)
+        q.put(worker['port'])
 
     logger.info(f"Worker puts done, {q.qsize()}")
 
-    for x in range(thread):
+    for x in range(threads):
         t = threading.Thread(target=threader, daemon=False)
         t.start()
 
@@ -89,7 +75,7 @@ def callback(body):
         obj[str(each)] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
     # db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanStatus': 'finished', 'openPorts': obj}})
     print('done')
-    logger.info(f'message {body} from queue is complete')
+    logger.info(f'message {ip} from queue is complete')
     ports = []
     return obj
 

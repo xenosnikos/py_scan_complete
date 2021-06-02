@@ -67,6 +67,7 @@ def format_by_ip(sub_domains, out_format):
                 out_list.append(each)
         except:
             pass
+
     if out_format:
         return out_dict
     else:

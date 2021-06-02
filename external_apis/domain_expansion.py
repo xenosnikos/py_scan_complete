@@ -41,7 +41,7 @@ class DomainExpansion(Resource):
             socket.gethostbyname(data['value'])
         except:
             return {
-                       'message': f"{data['value']} does not exists or cannot be reached right now, please check and try again"
+                       'message': f"{data['value']} does not exists or cannot be reached now, please check and try again"
                    }, 400
 
         check = utils.check_force(data, force, 'expansion', 1)
@@ -54,7 +54,11 @@ class DomainExpansion(Resource):
         if check:
             out = {'value': data['value']}
             if utils.mark_db_request(data, 'expansion'):
-                output_set = domain_expansion_recursive.recursive_scan(data)
+                # output_set = domain_expansion_recursive.recursive_scan(data, False)
+                output_sublistr = sublist3r2.main(domain=data['value'], engines=None, ports=None, threads=0,
+                                                  verbose=False, enable_bruteforce=False, savefile=None, silent=False)
+                output_anubis = anubis_domain_expansion.main_scan(data)
+                output_set = set(output_sublistr + output_anubis)
                 formatted_output = utils.format_by_ip(output_set, args['ip'])
                 out['count'] = len(output_set)
                 if args['ip']:
