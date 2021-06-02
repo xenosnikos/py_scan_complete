@@ -4,7 +4,7 @@ import socket
 import pymongo
 from datetime import datetime, timedelta
 import validators
-from helpers import auth_check, queue_to_db, port_scan_rec, port_scan_nmap
+from helpers import auth_check, queue_to_db, port_scan_nmap
 import logging
 from helpers.mongo_connection import db
 
@@ -53,7 +53,7 @@ class PortScanRegular(Resource):
                 list_scans['ip'] = ip
                 list_scans['value'] = val
 
-                out = port_scan_rec.port_scan(ip)
+                out = port_scan_nmap.nmap_scan(ip, 'regular')
 
                 logging.info(f"Output, {out}")
 
