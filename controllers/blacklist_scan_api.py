@@ -1,5 +1,5 @@
 from flask_restful import Resource, reqparse, request, inputs
-from helpers import auth_check, utils, blacklist_scan
+from helpers import auth_check, utils, blacklist_scan, common_strings
 
 request_args = reqparse.RequestParser()
 
@@ -30,7 +30,7 @@ class BlacklistScan(Resource):
 
         if not utils.validate_domain_ip(data['value']):
             return {
-                       'message': f"{data['value']} is not a valid domain or IP, please try again"
+                       'message': f"{data['value']}" + common_strings.strings['invalid_domain_ip']
                    }, 400
 
         check = utils.check_force(data, force, 'blacklist', 1)
@@ -39,8 +39,7 @@ class BlacklistScan(Resource):
             return {'status': check}
         elif type(check) == dict and check['status'] == 'finished':
             return check['output']
-
-        if check:
+        else:
             if utils.mark_db_request(data, 'blacklist'):
                 output = blacklist_scan.scan(data)
                 return output, 200

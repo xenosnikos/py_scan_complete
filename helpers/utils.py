@@ -4,7 +4,8 @@ import validators
 import pymongo
 from datetime import datetime, timedelta
 
-client = pymongo.MongoClient("mongodb+srv://stage:2rHOWa6oIFu0ckLG@cluster0.o5uwc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+client = pymongo.MongoClient(
+    "mongodb+srv://stage:2rHOWa6oIFu0ckLG@cluster0.o5uwc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
 db = client.test
 
 
@@ -56,7 +57,7 @@ def format_by_ip(sub_domains, out_format):
 
     for each in sub_domains:
         try:
-            ip = socket.gethostbyname(each)
+            ip = socket.gethostbyname(each)  # we don't need to display sub-domains that do not have an IP
             if out_format:
                 if ip in out_dict:
                     out_dict[ip] += [each]
@@ -66,6 +67,7 @@ def format_by_ip(sub_domains, out_format):
                 out_list.append(each)
         except:
             pass
+
     if out_format:
         return out_dict
     else:

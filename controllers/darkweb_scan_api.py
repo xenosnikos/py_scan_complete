@@ -1,13 +1,13 @@
+from helpers import utils
 from flask_restful import Resource, reqparse, request, inputs
-from helpers import auth_check, utils, blacklist_scan
+from helpers import auth_check, darkweb_scan
 
 request_args = reqparse.RequestParser()
+request_args.add_argument('value', help='Value of a domain is required', required=True)
+request_args.add_argument('force', type=inputs.boolean, required=False, default=False)
 
-request_args.add_argument('value', help='Domain or IP is required to scan', required=True)
-request_args.add_argument('force', type=inputs.boolean, default=False)
 
-
-class BlacklistScan(Resource):
+class DarkWebScan(Resource):
 
     @staticmethod
     def post():
@@ -28,12 +28,12 @@ class BlacklistScan(Resource):
 
         data['value'] = args['value']
 
-        if not utils.validate_domain_ip(data['value']):
+        if not utils.validate_domain(data['value']):
             return {
-                       'message': f"{data['value']} is not a valid domain or IP, please try again"
+                       'message': f"{data['value']} is not a valid domain, please try again"
                    }, 400
 
-        check = utils.check_force(data, force, 'blacklist', 1)
+        check = utils.check_force(data, force, 'darkweb', 1)
 
         if check == 'running' or check == 'queued':
             return {'status': check}
@@ -41,8 +41,8 @@ class BlacklistScan(Resource):
             return check['output']
 
         if check:
-            if utils.mark_db_request(data, 'blacklist'):
-                output = blacklist_scan.scan(data)
+            if utils.mark_db_request(data, 'darkweb'):
+                output = darkweb_scan.scan(data)
                 return output, 200
             else:
                 return {'status': 'error',

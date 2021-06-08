@@ -1,9 +1,7 @@
-import socket
-
 from helpers import utils
 from flask_restful import Resource, reqparse, request, inputs
 from helpers import auth_check, anubis_domain_expansion, queue_to_db
-from helpers import sublist3r2, domain_expansion_recursive
+from helpers import sublist3r2
 
 request_args = reqparse.RequestParser()
 request_args.add_argument('value', help='Value of a domain is required', required=True)
@@ -37,13 +35,6 @@ class DomainExpansion(Resource):
                        'message': f"{data['value']} is not a valid domain or IP, please try again"
                    }, 400
 
-        try:
-            socket.gethostbyname(data['value'])
-        except:
-            return {
-                       'message': f"{data['value']} does not exists or cannot be reached now, please check and try again"
-                   }, 400
-
         check = utils.check_force(data, force, 'expansion', 1)
 
         if check == 'running' or check == 'queued':
@@ -54,7 +45,6 @@ class DomainExpansion(Resource):
         if check:
             out = {'value': data['value']}
             if utils.mark_db_request(data, 'expansion'):
-                # output_set = domain_expansion_recursive.recursive_scan(data, False)
                 output_sublistr = sublist3r2.main(domain=data['value'], engines=None, ports=None, threads=0,
                                                   verbose=False, enable_bruteforce=False, savefile=None, silent=False)
                 output_anubis = anubis_domain_expansion.main_scan(data)

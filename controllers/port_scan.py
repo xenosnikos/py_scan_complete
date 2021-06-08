@@ -1,18 +1,28 @@
 import os
 from flask_restful import Resource, reqparse, request, inputs
 import socket
+import redis
+from rq import Retry, Queue
+import json
 import pymongo
 from datetime import datetime, timedelta
 import validators
-from helpers import auth_check, queue_to_db, port_scan_rec, port_scan_nmap
+from helpers import auth_check, queue_to_db, port_scan_rec
+from helpers.requests_retry import retry_session
 import logging
-from helpers.mongo_connection import db
+
+client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
+db = client.test
 
 # add_to_db = Queue(name='portScan_db_queue', connection=redis.from_url(url=os.environ.get('REDIS_CONN_STRING')), default_timeout=-1)
 logging.info(f"Environment variable {os.environ.get('REDIS_CONN_STRING')} to Redis Conn String")
 portscan_args = reqparse.RequestParser()
 
 portscan_args.add_argument('value', help='Domain or IP is required to scan', required=True)
+portscan_args.add_argument('companyId', help='Company ID is required to associate scan results', required=True)
+portscan_args.add_argument('domainId', help='Domain ID is required to associate company with different domains',
+                           required=True)
+portscan_args.add_argument('portScan', type=inputs.boolean, default=False)
 portscan_args.add_argument('force', type=inputs.boolean, default=False)
 
 
@@ -53,11 +63,36 @@ class PortScan(Resource):
                 list_scans['ip'] = ip
                 list_scans['value'] = val
 
-                out = port_scan_nmap.nmap_scan(ip, 'high')
+                # calling api with retries and backoff_factor
+                # session = retry_session()
+                # resp = session.get(f"https://api.viewdns.info/portscan/?host={val}&apikey="
+                #                    f"{os.environ.get('API_KEY_VIEW_DNS')}&output=json")
+                # logging.info(f"Environment variable {os.environ.get('API_KEY_VIEW_DNS')} to view DNS")
+                # if resp.status_code == 200:
+                #     out = json.loads(resp.content.decode())['response']
+                #
+                #     list_scans['portScan'] = out['port']
+                list_scans['portScan'] = None
 
-                logging.info(f"Output, {out}")
+                out3 = {}
 
-                list_scans['internalPortScan'] = out
+                # Our internal port scan with multithreading
+                out1 = port_scan_rec.callback({'ip': ip,
+                                              'type': 'fast'})
+                logging.info(f"Output of out1, {out1}")
+
+                if len(out1) >= 3:
+                    out2 = port_scan_rec.callback({'ip': ip,
+                                                  'type': 'medium'})
+                    out1.update(out2)
+
+                    if len(out1) >= 4:
+                        out3 = port_scan_rec.callback({'ip': ip,
+                                                      'type': 'slow'})
+
+                        out1.update(out3)
+
+                list_scans['internalPortScan'] = out1
             else:
                 return {
                            'message': f'{val} is not a valid IP or Domain, please try again'

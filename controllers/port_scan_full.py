@@ -1,22 +1,33 @@
 import os
 from flask_restful import Resource, reqparse, request, inputs
 import socket
+import redis
+from rq import Retry, Queue
+import json
 import pymongo
 from datetime import datetime, timedelta
 import validators
-from helpers import auth_check, queue_to_db, port_scan_rec, port_scan_nmap
+from helpers import auth_check, queue_to_db, port_scan_rec
+from helpers.requests_retry import retry_session
 import logging
-from helpers.mongo_connection import db
+import nmap
+
+client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
+db = client.test
 
 # add_to_db = Queue(name='portScan_db_queue', connection=redis.from_url(url=os.environ.get('REDIS_CONN_STRING')), default_timeout=-1)
 logging.info(f"Environment variable {os.environ.get('REDIS_CONN_STRING')} to Redis Conn String")
 portscan_args = reqparse.RequestParser()
 
 portscan_args.add_argument('value', help='Domain or IP is required to scan', required=True)
+portscan_args.add_argument('companyId', help='Company ID is required to associate scan results', required=True)
+portscan_args.add_argument('domainId', help='Domain ID is required to associate company with different domains',
+                           required=True)
+portscan_args.add_argument('portScan', type=inputs.boolean, default=False)
 portscan_args.add_argument('force', type=inputs.boolean, default=False)
 
 
-class PortScan(Resource):
+class PortScanExtended(Resource):
 
     @staticmethod
     def post():
@@ -33,7 +44,7 @@ class PortScan(Resource):
         val = args['value']
         db.portScan.create_index('value')
         # see if we have an existing scan for given value and pull the latest
-        search = db.portScan.find_one({'value': val}, sort=[('_id', pymongo.DESCENDING)])
+        search = db.portScanExtended.find_one({'value': val}, sort=[('_id', pymongo.DESCENDING)])
 
         # force comes in as false by default
         if args['force']:
@@ -53,11 +64,11 @@ class PortScan(Resource):
                 list_scans['ip'] = ip
                 list_scans['value'] = val
 
-                out = port_scan_nmap.nmap_scan(ip, 'high')
+                list_scans['port_scan_extended'] = None
 
-                logging.info(f"Output, {out}")
+                nmap_port_scan = nmap.PortScanner()
+                patch_check = nmap_port_scan.scan(hosts=val, ports='1-6000')
 
-                list_scans['internalPortScan'] = out
             else:
                 return {
                            'message': f'{val} is not a valid IP or Domain, please try again'
