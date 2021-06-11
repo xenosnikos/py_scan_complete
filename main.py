@@ -1,31 +1,31 @@
 from flask import Flask
 from flask_restful import Api
-from external_apis.port_scan import PortScan
-from external_apis.infrastructure_analysis import InfrastructureAnalysis
-from external_apis.connected_domains import ConnectedDomains
-from external_apis.domain_reputation import DomainReputation
-from external_apis.malware_check import MalwareCheck
-from external_apis.ssl_certificates_chain import SSLCertificatesChain
-from external_apis.ssl_configuration import SSLConfiguration
-from external_apis.screenshot import ScreenShot
-from external_apis.spoof_check_api import SpoofCheck
-from external_apis.trustymail_api import TrustyMail
-from external_apis import scans_available, queue_status
-from external_apis.hafnium_scan import HafniumScan
-from external_apis.hafnium_scan_request import HafniumScanRequest
-from external_apis.rdp_scan_api import RDPScan
-from external_apis.domain_expansion import DomainExpansion
-from external_apis.darkweb_scan_api import DarkWebScan
-from external_apis.blacklist_scan_api import BlacklistScan
-from external_apis.port_scan_regular import PortScanRegular
-from external_apis.port_scan_full import PortScanFull
+from controllers.port_scan import PortScan
+from controllers.infrastructure_analysis import InfrastructureAnalysis
+from controllers.connected_domains import ConnectedDomains
+from controllers.domain_reputation import DomainReputation
+from controllers.malware_check import MalwareCheck
+from controllers.ssl_certificates_chain import SSLCertificatesChain
+from controllers.ssl_configuration import SSLConfiguration
+from controllers.screenshot import ScreenShot
+from controllers.spoof_check_api import SpoofCheck
+from controllers.trustymail_api import TrustyMail
+from controllers import scans_available, queue_status
+from controllers.hafnium_scan import HafniumScan
+from controllers.hafnium_scan_request import HafniumScanRequest
+from controllers.rdp_scan_api import RDPScan
+from controllers.domain_expansion import DomainExpansion
+from controllers.darkweb_scan_api import DarkWebScan
+from controllers.blacklist_scan_api import BlacklistScan
+from controllers.port_scan_regular import PortScanRegular
+from controllers.port_scan_full import PortScanExtended
 
 app = Flask(__name__)
 api = Api(app)
 
 api.add_resource(PortScan, "/portScan")
 api.add_resource(PortScanRegular, "/portScan/regular")
-api.add_resource(PortScanFull, "/portScan/full")
+api.add_resource(PortScanExtended, "/portScan/full")  # will be changed when I start working on port scan API
 api.add_resource(InfrastructureAnalysis, "/infrastructureAnalysis")
 api.add_resource(ConnectedDomains, "/connectedDomains")
 api.add_resource(DomainReputation, "/domainReputation")

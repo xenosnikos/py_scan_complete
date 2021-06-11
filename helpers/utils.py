@@ -1,12 +1,8 @@
 import socket
-
 import validators
-import pymongo
 from datetime import datetime, timedelta
 
-client = pymongo.MongoClient(
-    "mongodb+srv://stage:2rHOWa6oIFu0ckLG@cluster0.o5uwc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
-db = client.test
+from helpers.mongo_connection import db
 
 
 def validate_domain(domain):
@@ -30,13 +26,12 @@ def check_force(data, force, collection, timeframe):
     if search is not None:
         if search['status'] == 'running' or search['status'] == 'queued':
             return search['status']
-        force = search['timeStamp'] + timedelta(days=timeframe) < datetime.utcnow()
+        else:
+            force = search['timeStamp'] + timedelta(days=timeframe) < datetime.utcnow()
 
-    if force is True and search is not None:
-        return True
-    elif force is False and search is not None:
+    if force is False and search is not None:
         return search
-    elif force is False:
+    else:
         return True
 
 
@@ -72,3 +67,11 @@ def format_by_ip(sub_domains, out_format):
         return out_dict
     else:
         return out_list
+
+
+def resolve_domain_ip(data_input):
+    try:
+        socket.gethostbyname(data_input)
+    except:
+        return False
+    return True
