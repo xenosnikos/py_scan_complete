@@ -4,6 +4,7 @@ bind = "0.0.0.0:5000"
 timeout = 900000000
 raw_env = [
     "DEBUG=False",
+    "DATABASE_LOOK_BACK_TIME=3"
     "FLASK_ENV=production",
     "FLASK_APP=main.py",
     "API_KEY=94HCy8U2a5sIO98l_hwvnbSOg9n8IKqtYyAa3amhjd8",

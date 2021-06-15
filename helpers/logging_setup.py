@@ -6,6 +6,6 @@ def initialize(log_name, file_name):
     handler = logging.FileHandler(file_name)
     handler.setFormatter(formatter)
     logger = logging.getLogger(log_name)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
     return logger

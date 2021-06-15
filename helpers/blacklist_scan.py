@@ -1,18 +1,15 @@
-import socket
 import logging
 import traceback
 
 import pydnsbl
-from helpers import utils
+from helpers import utils, common_strings
 
 logger = logging.getLogger('blacklist')
 
 
-def scan(data_input):
-    data_input['status'] = 'running'
-    utils.mark_db_request(scan, 'blacklist')  # marks data to running from queued in db
-
-    ip = socket.gethostbyname(data_input['value'])
+def scan(data_input, ip):
+    # marks data to running from queued in db
+    utils.mark_db_request(value=data_input, status=common_strings.strings['status_running'], collection='blacklist')
 
     res = None
 
@@ -20,16 +17,14 @@ def scan(data_input):
         ip_checker = pydnsbl.DNSBLIpChecker()
         res = ip_checker.check(ip)
     except:
-        logger.error('Cannot scan for blacklist')
+        logger.error(f'Cannot initialize blacklist library - {res}')
         logger.error(traceback.format_exc())
+        raise
 
-    output = {'value': data_input['value'], 'ip': ip}
+    output = {}
 
     if res is not None:
         output['blacklisted'] = res.blacklisted
         output['source'] = res.detected_by
-    else:
-        output['blacklisted'] = 'Unknown'
-        output['source'] = {}
 
     return output

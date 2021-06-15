@@ -1,15 +1,12 @@
-import logging
-import pymongo
 from bson import ObjectId
 from datetime import datetime
-from helpers import logs
+from helpers import logs, common_strings
+from helpers.mongo_connection import db
 
 
-client = pymongo.MongoClient("mongodb+srv://stage:2rHOWa6oIFu0ckLG@cluster0.o5uwc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
-db = client.test
-
-# logging.basicConfig(filename='logs/add_to_db.log', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
-#                     level=logging.INFO)
+def blacklist_db_addition(value, output):
+    db.blacklist.find_one_and_update({'value': value}, {'$set': {'status': common_strings.strings['status_finished'],
+                                                                 'timeStamp': datetime.utcnow(), 'output': output}})
 
 
 def port_scan_db_addition(value):
