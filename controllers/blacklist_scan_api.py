@@ -1,14 +1,16 @@
 import os
+import traceback
 
 from flask_restful import Resource, reqparse, request, inputs
 from helpers import auth_check, utils, blacklist_scan, common_strings, logging_setup, queue_to_db
 
 request_args = reqparse.RequestParser()
 
-request_args.add_argument('value', help=common_strings.strings['domain_required'], required=True)
-request_args.add_argument('force', type=inputs.boolean, default=False)
+request_args.add_argument(common_strings.strings['key_value'], help=common_strings.strings['domain_required'],
+                          required=True)
+request_args.add_argument(common_strings.strings['input_force'], type=inputs.boolean, default=False)
 
-logger = logging_setup.initialize('blacklist', 'logs/blacklist_api.log')
+logger = logging_setup.initialize(common_strings.strings['blacklist'], 'logs/blacklist_api.log')
 
 
 class BlacklistScan(Resource):
@@ -17,7 +19,7 @@ class BlacklistScan(Resource):
     def post():
         args = request_args.parse_args()
 
-        value = args['value']
+        value = args[common_strings.strings['key_value']]
 
         logger.debug(f"Blacklist scan request received for {value}")
 
@@ -39,18 +41,18 @@ class BlacklistScan(Resource):
         try:
             ip = utils.resolve_domain_ip(value)
         except:
-            logger.debug(f"Domain that doesn't resolve IP - {value}")
+            logger.debug(f"Domain that doesn't resolve to an IP - {value}")
             return {
                        'message': f"{value}" + common_strings.strings['unresolved_domain_ip']
                    }, 400
 
-        if args['force']:
+        if args[common_strings.strings['input_force']]:
             force = True
         else:
             force = False
 
         # based on force - either gives data back from database or gets a True status back to continue with a fresh scan
-        check = utils.check_force(value, force, collection='blacklist',
+        check = utils.check_force(value, force, collection=common_strings.strings['blacklist'],
                                   timeframe=int(os.environ.get('DATABASE_LOOK_BACK_TIME')))
 
         # if a scan is already requested/in-process, we send a 202 indicating that we are working on it
@@ -62,23 +64,26 @@ class BlacklistScan(Resource):
             return check['output'], 200
         else:
             # mark in db that the scan is queued
-            utils.mark_db_request(value, status=common_strings.strings['status_queued'], collection='blacklist')
-            output = {'value': value, 'ip': ip}
+            utils.mark_db_request(value, status=common_strings.strings['status_queued'],
+                                  collection=common_strings.strings['blacklist'])
+            output = {common_strings.strings['key_value']: value, 'ip': ip}
 
             try:
                 out = blacklist_scan.scan(value, ip)  # the blacklist scan function
                 output.update(out)
-            except:
+            except Exception as e:
                 # remove the record from database so next scan can run through
-                utils.delete_db_record(value, collection='blacklist')
-                output['blacklisted'] = 'Unknown'
-                output['source'] = 'Unknown'
-
-            if output['blacklisted'] != 'Unknown':
-                try:
-                    queue_to_db.blacklist_db_addition(value, output)
-                except:
-                    logger.critical(common_strings.strings['database_issue'])
+                utils.delete_db_record(value, collection=common_strings.strings['blacklist'])
+                output['blacklisted'] = common_strings.strings['error']
+                output['source'] = common_strings.strings['error']
+                logger.error(f'Cannot initialize blacklist library - {e}')
+                logger.error(traceback.format_exc())
 
             logger.debug(f"blacklist scan response sent for {value} performing a new scan")
-            return output, 200
+            if output['blacklisted'] != common_strings.strings['error']:
+                try:
+                    queue_to_db.blacklist_db_addition(value, output)
+                    return output, 200
+                except Exception as e:
+                    logger.critical(common_strings.strings['database_issue'], e)
+                    return output, 503

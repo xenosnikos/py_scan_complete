@@ -24,11 +24,12 @@ def validate_domain_ip(value):
 def check_force(data, force, collection, timeframe):
     if force:
         return True
-    db[collection].create_index('value')
-    search = db[collection].find_one({'value': data})
+    db[collection].create_index(common_strings.strings['mongo_value'])
+    search = db[collection].find_one({common_strings.strings['mongo_value']: data})
 
     if search is not None:
-        if search['status'] == 'running' or search['status'] == 'queued':
+        if search['status'] == common_strings.strings['status_running'] or \
+                search['status'] == common_strings.strings['status_queued']:
             return search['status']
         else:
             force = search['timeStamp'] + timedelta(days=timeframe) < datetime.utcnow()
@@ -41,7 +42,8 @@ def check_force(data, force, collection, timeframe):
 
 def mark_db_request(value, status, collection):
     try:
-        db[collection].update_one({'value': value}, {'$set': {'status': status}}, upsert=True)
+        db[collection].update_one({common_strings.strings['mongo_value']: value}, {'$set': {'status': status}},
+                                  upsert=True)
     except:
         logger = logging.getLogger(collection)
         logger.critical(common_strings.strings['database_issue'])
@@ -77,8 +79,7 @@ def resolve_domain_ip(data_input):
 
 def delete_db_record(value, collection):
     try:
-        db[collection].find_one_and_delete({'value': value})
+        db[collection].find_one_and_delete({common_strings.strings['mongo_value']: value})
     except:
         logger = logging.getLogger(collection)
         logger.critical(common_strings.strings['database_issue'])
-

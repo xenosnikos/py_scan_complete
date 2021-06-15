@@ -5,8 +5,9 @@ from helpers.mongo_connection import db
 
 
 def blacklist_db_addition(value, output):
-    db.blacklist.find_one_and_update({'value': value}, {'$set': {'status': common_strings.strings['status_finished'],
-                                                                 'timeStamp': datetime.utcnow(), 'output': output}})
+    db.blacklist.find_one_and_update({common_strings.strings['mongo_value']: value},
+                                     {'$set': {'status': common_strings.strings['status_finished'],
+                                               'timeStamp': datetime.utcnow(), 'output': output}})
 
 
 def port_scan_db_addition(value):

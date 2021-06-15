@@ -6,5 +6,10 @@ strings = {
     'status_queued': 'queued',
     'status_running': 'running',
     'status_finished': 'finished',
-    'database_issue': 'Database connection issue'
+    'database_issue': 'Database connection issue',
+    'blacklist': 'blacklist',
+    'key_value': 'value',
+    'mongo_value': 'value',
+    'input_force': 'force',
+    'error': 'error'
 }
