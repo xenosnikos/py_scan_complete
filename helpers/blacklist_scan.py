@@ -1,23 +1,16 @@
-import sys
-import socket
 import logging
 import traceback
 
 import pydnsbl
-from helpers import utils
+from helpers import utils, common_strings
 
-logging.basicConfig(filename='logs/blacklist_scan.log', format='%(asctime)s %(levelname)s %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
-logger = logging.getLogger(__name__)
-stream_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stream_handler)
+logger = logging.getLogger(common_strings.strings['blacklist'])
 
 
-def scan(data_input):
-    data_input['status'] = 'running'
-    utils.mark_db_request(scan, 'blacklist')
-
-    ip = socket.gethostbyname(data_input['value'])
+def scan(data_input, ip):
+    # marks data to running from queued in db
+    utils.mark_db_request(value=data_input, status=common_strings.strings['status_running'],
+                          collection=common_strings.strings['blacklist'])
 
     res = None
 
@@ -25,18 +18,18 @@ def scan(data_input):
         ip_checker = pydnsbl.DNSBLIpChecker()
         res = ip_checker.check(ip)
     except Exception as e:
-        logger.error('Cannot scan for blacklist')
+        logger.error(f'Cannot initialize blacklist library - {res, e}')
         logger.error(traceback.format_exc())
+        raise
 
-    output = {'value': data_input['value'],
-              'ip': ip,
-              }
+    output = {}
 
     if res is not None:
         output['blacklisted'] = res.blacklisted
-        output['source'] = res.detected_by
-    else:
-        output['blacklisted'] = 'Unknown'
-        output['source'] = {}
+        out_format = []
+        for each_item in res.detected_by:
+            temp_dict = {"detected_by": each_item, "categories": res.detected_by[each_item]}
+            out_format.append(temp_dict)
+        output['source'] = out_format
 
     return output

@@ -1,12 +1,10 @@
 import socket
-
+import logging
 import validators
-import pymongo
 from datetime import datetime, timedelta
 
-client = pymongo.MongoClient(
-    "mongodb+srv://stage:2rHOWa6oIFu0ckLG@cluster0.o5uwc.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
-db = client.test
+from helpers.mongo_connection import db
+from helpers import common_strings
 
 
 def validate_domain(domain):
@@ -26,28 +24,29 @@ def validate_domain_ip(value):
 def check_force(data, force, collection, timeframe):
     if force:
         return True
-    search = db[collection].find_one({'value': data['value']})
+    db[collection].create_index(common_strings.strings['mongo_value'])
+    search = db[collection].find_one({common_strings.strings['mongo_value']: data})
+
     if search is not None:
-        if search['status'] == 'running' or search['status'] == 'queued':
+        if search['status'] == common_strings.strings['status_running'] or \
+                search['status'] == common_strings.strings['status_queued']:
             return search['status']
-        force = search['timeStamp'] + timedelta(days=timeframe) < datetime.utcnow()
-
-    if force is True and search is not None:
-        return True
-    elif force is False and search is not None:
-        return search
-    elif force is False:
-        return True
-
-
-def mark_db_request(data, collection):
-    try:
-        if 'status' in data:
-            db[collection].find_one_and_update({'value': data['value']}, {'$set': {'status': data['status']}})
         else:
-            db[collection].update_one({'value': data['value']}, {'$set': {'status': 'queued'}}, upsert=True)
+            force = search['timeStamp'] + timedelta(days=timeframe) < datetime.utcnow()
+
+    if force is False and search is not None:
+        return search
+    else:
+        return True
+
+
+def mark_db_request(value, status, collection):
+    try:
+        db[collection].update_one({common_strings.strings['mongo_value']: value}, {'$set': {'status': status}},
+                                  upsert=True)
     except:
-        return False
+        logger = logging.getLogger(collection)
+        logger.critical(common_strings.strings['database_issue'])
     return True
 
 
@@ -72,3 +71,15 @@ def format_by_ip(sub_domains, out_format):
         return out_dict
     else:
         return out_list
+
+
+def resolve_domain_ip(data_input):
+    return socket.gethostbyname(data_input)
+
+
+def delete_db_record(value, collection):
+    try:
+        db[collection].find_one_and_delete({common_strings.strings['mongo_value']: value})
+    except:
+        logger = logging.getLogger(collection)
+        logger.critical(common_strings.strings['database_issue'])

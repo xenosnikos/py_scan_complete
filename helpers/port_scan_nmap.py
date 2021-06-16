@@ -1,18 +1,9 @@
 import pymongo
-import logging
 import os
-import sys
-
 import nmap
 
 client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
 db = client.test
-
-logging.basicConfig(filename='logs/port_scan.log', format='%(asctime)s %(levelname)s %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
-logger = logging.getLogger(__name__)
-stream_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stream_handler)
 
 
 def nmap_scan(ip, priority):
