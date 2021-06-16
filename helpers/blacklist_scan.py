@@ -26,6 +26,10 @@ def scan(data_input, ip):
 
     if res is not None:
         output['blacklisted'] = res.blacklisted
-        output['source'] = res.detected_by
+        out_format = []
+        for each_item in res.detected_by:
+            temp_dict = {"detected_by": each_item, "categories": res.detected_by[each_item]}
+            out_format.append(temp_dict)
+        output['source'] = out_format
 
     return output

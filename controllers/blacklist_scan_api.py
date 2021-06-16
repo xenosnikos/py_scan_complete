@@ -4,6 +4,15 @@ import traceback
 from flask_restful import Resource, reqparse, request, inputs
 from helpers import auth_check, utils, blacklist_scan, common_strings, logging_setup, queue_to_db
 
+"""
+API Call: POST
+Endpoint: https://{url}/blacklist?force=true
+Body: {
+        "value": "idagent.com"
+      }
+Authorization: Needed
+"""
+
 request_args = reqparse.RequestParser()
 
 request_args.add_argument(common_strings.strings['key_value'], help=common_strings.strings['domain_required'],
