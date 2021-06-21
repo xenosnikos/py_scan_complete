@@ -15,10 +15,11 @@ Authorization: Needed
 
 request_args = reqparse.RequestParser()
 
-request_args.add_argument('value', help=common_strings.strings['domain_required'], required=True)
-request_args.add_argument('force', type=inputs.boolean, required=False, default=False)
+request_args.add_argument(common_strings.strings['key_value'], help=common_strings.strings['domain_required'],
+                          required=True)
+request_args.add_argument(common_strings.strings['input_force'], type=inputs.boolean, required=False, default=False)
 
-logger = logging_setup.initialize('rdp', 'logs/rdp_api.log')
+logger = logging_setup.initialize(common_strings.strings['rdp'], 'logs/rdp_api.log')
 
 
 class RDPScan(Resource):
@@ -42,17 +43,18 @@ class RDPScan(Resource):
         if not utils.validate_ip(value):  # if regex doesn't match throw a 400
             logger.debug(f"IP that doesn't match regex request received - {value}")
             return {
-                       'message': f"{value}" + common_strings.strings['invalid_domain_ip']
+                       common_strings.strings['message']: f"{value}" + common_strings.strings['invalid_domain_ip']
                    }, 400
 
-        # if ping doesn't respond for the input IP, throw a 400 as IP cannot be reached
-        try:
-            utils.ip_reachable_check(value)
-        except Exception as e:
-            logger.debug(f"IP that doesn't respond to test - {value, e}")
-            return {
-                       'message': f"{value}" + common_strings.strings['unresolved_domain_ip']
-                   }, 400
+        # ping and ip_reachable methods are both inconsistent, we won't be using any method as it stands to make a
+        # determination on the status of IP before continuing with the scan
+        # try:
+        #     utils.ip_reachable_check(value)
+        # except Exception as e:
+        #     logger.debug(f"IP that doesn't respond to test - {value, e}")
+        #     return {
+        #                common_strings.strings['message']: f"{value}" + common_strings.strings['unresolved_domain_ip']
+        #            }, 400
 
         if args[common_strings.strings['input_force']]:
             force = True
@@ -79,7 +81,7 @@ class RDPScan(Resource):
             try:
                 out = rdp_scan.process(value)
                 output.update(out)
-                if 'error_enum' in output or 'error_ntlm' in output:
+                if common_strings.strings['error_enum'] in output or common_strings.strings['error_ntlm'] in output:
                     return output, 503
                 else:
 
@@ -97,5 +99,5 @@ class RDPScan(Resource):
                     logger.critical(common_strings.strings['database_issue'], e)
 
                 logger.error(f'Exception occurred in rdp scan process {e}')
-                output.update({'error_enum': True, 'error_ntlm': True})
+                output.update({common_strings.strings['error_enum']: True, common_strings.strings['error_ntlm']: True})
                 return output, 503

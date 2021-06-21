@@ -13,5 +13,8 @@ strings = {
     'mongo_value': 'value',
     'input_force': 'force',
     'error': 'error',
-    'output_ntlm': 'ntlm'
+    'output_ntlm': 'ntlm',
+    'message': 'message',
+    'error_enum': 'error_enum',
+    'error_ntlm': 'error_ntlm'
 }

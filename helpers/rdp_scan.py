@@ -15,7 +15,7 @@ def process(ip):
 
     # initialize error dictionary to send as output for when ports are open but Enum encryption scan fails
     error = {
-        "error_enum": True,
+        common_strings.strings['error_enum']: True,
         "supported_encryption_protocols": 'Cannot scan for supported encryption protocols (RDP possibly false positive)',
         "unsupported_encryption_protocols": 'Cannot scan for unsupported encryption protocols (RDP possibly false '
                                             'positive)',
@@ -52,19 +52,21 @@ def process(ip):
         patch_check = nmap_patch.scan(hosts=ip, arguments='-p 3389,3388 -T4 -Pn -d --script rdp-ntlm-info')
     except Exception as e:
         logger.error(f'Cannot scan for NTLM {e}')
-        output['error_ntlm'] = True
-        rdp_ntlm_info_results = None
+        output[common_strings.strings['error_ntlm']] = True
+        rdp_ntlm_info_results = common_strings.strings['error']
     else:  # If there is no exception then this block will be executed
-        if 'rdp-ntlm-info' in patch_check['scan'][ip]['tcp'][port_3389]['script']:
-            rdp_ntlm_info_results = patch_check['scan'][ip]['tcp'][port_3389]['script']['rdp-ntlm-info']
-        elif 'rdp-ntlm-info' in patch_check['scan'][ip]['tcp'][port_3388]['script']:
-            rdp_ntlm_info_results = patch_check['scan'][ip]['tcp'][port_3388]['script']['rdp-ntlm-info']
+        if 'script' in patch_check['scan'][ip]['tcp'][3389] and \
+                'rdp-ntlm-info' in patch_check['scan'][ip]['tcp'][3389]['script']:
+            rdp_ntlm_info_results = patch_check['scan'][ip]['tcp'][3389]['script']['rdp-ntlm-info']
+        elif 'script' in patch_check['scan'][ip]['tcp'][3388] and \
+                'rdp-ntlm-info' in patch_check['scan'][ip]['tcp'][3388]['script']:
+            rdp_ntlm_info_results = patch_check['scan'][ip]['tcp'][3388]['script']['rdp-ntlm-info']
         else:
             rdp_ntlm_info_results = None
 
     logger.debug('NTLM scan complete')
 
-    if rdp_ntlm_info_results is not None:
+    if rdp_ntlm_info_results is not None and rdp_ntlm_info_results != common_strings.strings['error']:
         rdp_ntlm_info_modified = rdp_ntlm_info_results.strip().replace('\n', ',,').replace(': ', ':: ')
 
         rdp_ntlm_info_results_dict = dict((x.strip(), y.strip())
@@ -87,8 +89,9 @@ def process(ip):
                     rdp_ntlm_info_results_dict[each_key] = None
 
         output[common_strings.strings['output_ntlm']] = rdp_ntlm_info_results_dict
+    elif rdp_ntlm_info_results is None:
+        output[common_strings.strings['output_ntlm']] = ''
     else:
-        output['error_ntlm'] = True
         output[common_strings.strings['output_ntlm']] = common_strings.strings['error']
 
     risk = 'CLEAR'
@@ -99,16 +102,16 @@ def process(ip):
         if output[common_strings.strings['output_ntlm']] is not None:
             risk = 'MEDIUM_RISK'
 
-    if "error_enum" in output:
+    if common_strings.strings['error_enum'] in output:
         logger.error(f'Enum encryption scan failed, skipping Enum results')
     else:
-        if 'Native RDP' in output['supported_encryption_protocols'] or \
-                'SSL' in output['supported_encryption_protocols']:
-            risk = 'CRITICAL'
-
         if 'CredSSP (NLA)' not in output['supported_encryption_protocols'] or \
                 'RDSTLS' not in output['supported_encryption_protocols']:
             risk = 'HIGH_RISK'
+
+        if 'Native RDP' in output['supported_encryption_protocols'] or \
+                'SSL' in output['supported_encryption_protocols']:
+            risk = 'CRITICAL'
 
     output['risk'] = risk
 
