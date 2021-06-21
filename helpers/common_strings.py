@@ -8,8 +8,13 @@ strings = {
     'status_finished': 'finished',
     'database_issue': 'Database connection issue',
     'blacklist': 'blacklist',
+    'rdp': 'rdp',
     'key_value': 'value',
     'mongo_value': 'value',
     'input_force': 'force',
-    'error': 'error'
+    'error': 'error',
+    'output_ntlm': 'ntlm',
+    'message': 'message',
+    'error_enum': 'error_enum',
+    'error_ntlm': 'error_ntlm'
 }

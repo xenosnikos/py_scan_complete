@@ -43,7 +43,7 @@ class BlacklistScan(Resource):
         if not utils.validate_domain(value):  # if regex doesn't match throw a 400
             logger.debug(f"Domain that doesn't match regex request received - {value}")
             return {
-                       'message': f"{value}" + common_strings.strings['invalid_domain_ip']
+                       common_strings.strings['message']: f"{value}" + common_strings.strings['invalid_domain_ip']
                    }, 400
 
         # if domain doesn't resolve into an IP, throw a 400 as domain doesn't exist in the internet
@@ -52,7 +52,7 @@ class BlacklistScan(Resource):
         except:
             logger.debug(f"Domain that doesn't resolve to an IP - {value}")
             return {
-                       'message': f"{value}" + common_strings.strings['unresolved_domain_ip']
+                       common_strings.strings['message']: f"{value}" + common_strings.strings['unresolved_domain_ip']
                    }, 400
 
         if args[common_strings.strings['input_force']]:

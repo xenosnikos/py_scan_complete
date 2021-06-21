@@ -1,7 +1,9 @@
 import socket
+import os
 import logging
 import validators
 from datetime import datetime, timedelta
+import nmap
 
 from helpers.mongo_connection import db
 from helpers import common_strings
@@ -16,6 +18,13 @@ def validate_domain(domain):
 
 def validate_domain_ip(value):
     if not (validators.domain(value) or validators.ipv4(value)):
+        return False
+    else:
+        return True
+
+
+def validate_ip(ip):
+    if not validators.ipv4(ip):
         return False
     else:
         return True
@@ -75,6 +84,15 @@ def format_by_ip(sub_domains, out_format):
 
 def resolve_domain_ip(data_input):
     return socket.gethostbyname(data_input)
+
+
+def ip_reachable_check(ip):
+    scanner = nmap.PortScanner()
+    result = scanner.scan(ip, '1', '-v')['scan'][ip]['status']['state']
+    if result == 'up':
+        return True
+    else:
+        raise Exception('IP is not up')
 
 
 def delete_db_record(value, collection):
