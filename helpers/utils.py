@@ -4,8 +4,10 @@ import logging
 import validators
 from datetime import datetime, timedelta
 import nmap
+import json
 
 from helpers.mongo_connection import db
+from helpers.requests_retry import retry_session
 from helpers import common_strings
 
 
@@ -59,27 +61,95 @@ def mark_db_request(value, status, collection):
     return True
 
 
+def get_location_ip(ip):
+    session = retry_session()
+    resp = session.get(f"{os.environ.get('WHOISXML_IP_LOCATION')}?apiKey={os.environ.get('API_KEY_WHOIS_XML')}"
+                       f"&ipAddress={ip}")
+    # if location cannot be found or if 3rd party provider has an issue then send an error back
+    return json.loads(resp.text)['location'] if resp.status_code == 200 else {'country': common_strings.strings['error']}
+
+
+def v1_format_by_ip(sub_domains, out_format):
+    out_dict = {}
+    out_list = []
+    out_blacklist = []
+    blacklist_dict = {}
+    out_sub_domain_count = 0
+
+    blacklist = ['.nat.']
+
+    for each_domain in sub_domains:
+        try:
+            ip = socket.gethostbyname(each_domain)  # we don't need to display sub-domains that do not have an IP
+            for each_item in blacklist:
+                if each_item in each_domain:
+                    if each_item in blacklist_dict:
+                        blacklist_dict[each_item] += 1
+                    else:
+                        blacklist_dict[each_item] = 1
+                    break
+            else:
+                out_sub_domain_count += 1
+                if out_format:
+                    if ip in out_dict:
+                        out_dict[ip] += [each_domain]
+                    else:
+                        out_dict[ip] = [each_domain]
+                else:
+                    out_list.append(each_domain)
+        except:
+            pass
+
+    for each_blacklist in blacklist_dict:
+        out_blacklist.append({'count': blacklist_dict[each_blacklist],
+                              'reason': f"Blacklisted because the sub-domain contains '{each_blacklist}'"})
+
+    if out_format:
+        return out_dict, out_blacklist, out_sub_domain_count
+    else:
+        return out_list, out_blacklist, out_sub_domain_count
+
+
 def format_by_ip(sub_domains, out_format):
     out_dict = {}
     out_list = []
+    out_blacklist = []
+    blacklist_dict = {}
+    out_sub_domain_count = 0
 
-    for each in sub_domains:
+    blacklist = ['.nat.']
+
+    for each_domain in sub_domains:
         try:
-            ip = socket.gethostbyname(each)  # we don't need to display sub-domains that do not have an IP
-            if out_format:
-                if ip in out_dict:
-                    out_dict[ip] += [each]
-                else:
-                    out_dict[ip] = [each]
+            ip = socket.gethostbyname(each_domain)  # we don't need to display sub-domains that do not have an IP
+            for each_item in blacklist:
+                if each_item in each_domain:
+                    if each_item in blacklist_dict:
+                        blacklist_dict[each_item] += 1
+                    else:
+                        blacklist_dict[each_item] = 1
+                    break
             else:
-                out_list.append(each)
+                out_sub_domain_count += 1
+                if out_format:
+                    if ip in out_dict:
+                        out_dict[ip] += [each_domain]
+                    else:
+                        out_dict[ip] = [each_domain]
+                else:
+                    out_list.append(each_domain)
         except:
             pass
 
     if out_format:
-        return out_dict
-    else:
-        return out_list
+        for each_item in out_dict:
+            out_list.append({'ip': each_item, 'domains': out_dict[each_item], 'location': get_location_ip(each_item)})
+
+    for each_blacklist in blacklist_dict:
+        out_blacklist.append({'count': blacklist_dict[each_blacklist],
+                              'reason': f"Blacklisted because the sub-domain contains '{each_blacklist}'"})
+
+    return out_list, out_blacklist, out_sub_domain_count
 
 
 def resolve_domain_ip(data_input):

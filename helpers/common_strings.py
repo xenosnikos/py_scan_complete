@@ -1,5 +1,6 @@
 strings = {
-    'invalid_domain_ip': ' is not a valid domain or IP, please try again',
+    'invalid_domain': ' is not a valid domain, please try again',
+    'invalid_ip': ' is not a valid IP, please try again',
     'unresolved_domain_ip': ' is not available or cannot be reached right now, please check and try again later',
     'domain_required': 'Domain is required to scan',
     'auth': 'Authorization',
@@ -9,7 +10,10 @@ strings = {
     'database_issue': 'Database connection issue',
     'blacklist': 'blacklist',
     'rdp': 'rdp',
+    'expansion': 'expansion',
     'key_value': 'value',
+    'format_by_ip': 'format_by_ip',
+    'key_ip': 'ip',
     'mongo_value': 'value',
     'input_force': 'force',
     'error': 'error',

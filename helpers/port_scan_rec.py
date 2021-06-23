@@ -1,21 +1,10 @@
 import socket, threading
 from queue import Queue
-import pymongo
-import logging
 import os
-import sys
 
-client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
-db = client.test
-
-logging.basicConfig(filename='logs/port_scan.log', format='%(asctime)s %(levelname)s %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
-logger = logging.getLogger(__name__)
-stream_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stream_handler)
+from mongo_connection import db
 
 socket.setdefaulttimeout(3)
-print_lock = threading.Lock()
 
 ports = []
 ip = None
@@ -27,11 +16,9 @@ def scan(port):
         try:
             s.connect((ip, port))
             ports.append(port)
-            with print_lock:
-                print(port, 'is open')
-            # s.close()
         except ConnectionRefusedError:
-            logger.info(f"Connection refused, port: {port}")
+            print(f"Connection refused, port: {port}")
+            # logger.info(f"Connection refused, port: {port}")
         except socket.timeout:
             pass
         except Exception as e:
@@ -47,35 +34,44 @@ def threader():
             break
 
 
-def port_scan(input_ip):
+def port_scan(input_ip, scan_type):
     global ports
     global ip
     ip = input_ip
-    logger.info(f'message {ip} from queue is received')
+    # logger.info(f'message {ip} from queue is received')
     print(" [x] Received %r" % ip)
 
-    scan_list = db.portPriority.find({'count': {'$gte': 1000}}, {'_id': 0, 'port': 1})
-    logger.info(f"Output of scan_list1, {scan_list}")
-    threads = 1000
+    if scan_type == 'quick':
+        scan_list = db.portPriority.find({'count': {'$gte': 38000}}, {'_id': 0, 'port': 1})
+        thread = 170
+    elif scan_type == 'full':
+        scan_list = range(1, 65536)
+        thread = int(os.environ.get('MAX_THREADS'))
+        # logger.info(f"Environment variable {os.environ.get('MAX_THREADS')} to Max Threads")
+    else:
+        scan_list = db.portPriority.find({'count': {'$gte': 994}}, {'_id': 0, 'port': 1})
+        thread = 900
 
     for worker in scan_list:
-        q.put(worker['port'])
+        if type(worker) is dict:
+            q.put(worker['port'])
+        else:
+            q.put(worker)
 
-    logger.info(f"Worker puts done, {q.qsize()}")
+    # logger.info(f"Worker puts done, {q.qsize()}")
 
-    for x in range(threads):
+    for x in range(thread):
         t = threading.Thread(target=threader, daemon=False)
         t.start()
 
-    logger.info(f"Threads created")
+    # logger.info(f"Threads created")
 
     q.join()
     obj = {}
+
     for each in ports:
         obj[str(each)] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
-    # db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanStatus': 'finished', 'openPorts': obj}})
-    print('done')
-    logger.info(f'message {ip} from queue is complete')
+
     ports = []
     return obj
 
