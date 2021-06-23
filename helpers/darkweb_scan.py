@@ -7,9 +7,7 @@ from helpers import utils
 
 
 def scan(data_input):
-
-    data_input['status'] = 'running'
-    utils.mark_db_request(scan, 'darkweb')
+    utils.mark_db_request(data_input['value'], 'running', 'darkweb')
 
     # calling api with retries and backoff_factor
     session = retry_session()

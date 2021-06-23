@@ -2,7 +2,7 @@ import socket, threading
 from queue import Queue
 import os
 
-from mongo_connection import db
+from helpers.mongo_connection import db
 
 socket.setdefaulttimeout(3)
 

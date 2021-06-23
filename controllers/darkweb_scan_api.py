@@ -41,7 +41,7 @@ class DarkWebScan(Resource):
             return check['output']
 
         if check:
-            if utils.mark_db_request(data, 'darkweb'):
+            if utils.mark_db_request(data, 'queued', 'darkweb'):
                 output = darkweb_scan.scan(data)
                 return output, 200
             else:

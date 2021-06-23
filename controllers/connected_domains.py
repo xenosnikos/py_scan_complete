@@ -1,19 +1,13 @@
 import os
 from flask_restful import Resource, reqparse, request, inputs
 import socket
-from redis import Redis
-from rq import Retry, Queue
 import json
 from helpers.requests_retry import retry_session
 import pymongo
 from datetime import datetime, timedelta
 import validators
-from helpers import auth_check, queue_to_db
-
-client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
-db = client.test
-
-add_to_db = Queue(name='connectedDomains_db_queue', connection=Redis(host=os.environ.get('REDIS_HOST')))
+from helpers import auth_check
+from helpers.mongo_connection import db
 
 portscan_args = reqparse.RequestParser()
 
@@ -77,10 +71,5 @@ class ConnectedDomains(Resource):
             del search['_id']
             del search['timeStamp']
             return search
-
-        message = {'mongo': str(item),
-                   'data': list_scans}
-
-        add_to_db.enqueue(queue_to_db.connected_domains_db_addition, message, retry=Retry(max=3, interval=[10, 30, 60]))
 
         return list_scans
