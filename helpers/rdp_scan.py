@@ -16,13 +16,15 @@ def process(ip):
     # initialize error dictionary to send as output for when ports are open but Enum encryption scan fails
     error = {
         common_strings.strings['error_enum']: True,
-        "supported_encryption_protocols": 'Cannot scan for supported encryption protocols (RDP possibly false positive)',
-        "unsupported_encryption_protocols": 'Cannot scan for unsupported encryption protocols (RDP possibly false '
-                                            'positive)',
-        "error_messages": 'Cannot scan to retrieve error messages (RDP possibly false positive)',
-        "supported_encryption_methods": 'Cannot scan for supported encryption methods (RDP possibly false positive)',
-        "unsupported_encryption_methods": 'Cannot scan for unsupported encryption methods (RDP possibly false positive)',
-        "server_encryption_level": 'Cannot scan for encryption level (RDP possibly false positive)'
+        "supported_encryption_protocols": ['Cannot scan for supported encryption protocols (RDP possibly false '
+                                           'positive)'],
+        "unsupported_encryption_protocols": ['Cannot scan for unsupported encryption protocols (RDP possibly false '
+                                             'positive)'],
+        "error_messages": ['Cannot scan to retrieve error messages (RDP possibly false positive)'],
+        "supported_encryption_methods": ['Cannot scan for supported encryption methods (RDP possibly false positive)'],
+        "unsupported_encryption_methods": [
+            'Cannot scan for unsupported encryption methods (RDP possibly false positive)'],
+        "server_encryption_level": ['Cannot scan for encryption level (RDP possibly false positive)']
     }
 
     port_3389 = 3389
@@ -31,11 +33,11 @@ def process(ip):
 
     try:
         enum_encryption = rdp_check_ciphers.rdp_scan(ip, port_3389)
-        if enum_encryption != 'Cannot connect':
+        if enum_encryption != 'cannot connect':
             output.update(enum_encryption)
         else:
             enum_encryption = rdp_check_ciphers.rdp_scan(ip, port_3388)
-            if enum_encryption != 'Cannot connect':
+            if enum_encryption != 'cannot connect':
                 output.update(enum_encryption)
             else:
                 logger.info('Both ports 3389 and 3388 are not open')

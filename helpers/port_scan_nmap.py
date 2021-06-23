@@ -1,21 +1,16 @@
-import pymongo
-import os
 import nmap
 
-client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
-db = client.test
 
-
-def nmap_scan(ip, priority):
+def nmap_scan(ip, scan_type):
     nmap_port_scan = nmap.PortScanner()
 
     try:
-        if priority == 'high':
-            nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-sTU -Pn --top-ports 200')
-        elif priority == 'low':
-            nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-p- -sTU -Pn')
+        if scan_type == 'quick':
+            nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-sT -Pn --top-ports 200')
+        elif scan_type == 'full':
+            nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-p- -sT -Pn')
         else:
-            nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-sTU -Pn --top-ports 1000')
+            nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-sT -Pn --top-ports 1000')
     except:
         nmap_port_scanner = None
 
@@ -25,9 +20,13 @@ def nmap_scan(ip, priority):
         out = {}
 
         for (key, value) in scan_output.items():
+            status_flag = True
             for (k, v) in value.items():
-                if k == 'name':
-                    out[key] = {k: v, 'type': '', 'description': ''}
+                if k == 'state' and v != 'open':
+                    status_flag = False
+                    continue
+                if k == 'name' and status_flag is True:
+                    out[str(key)] = {k: v, 'type': '', 'description': ''}
                     continue
     else:
         out = None

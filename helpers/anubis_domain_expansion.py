@@ -195,7 +195,7 @@ class Target(Base):
         return cleaned
 
 
-def anubis_scan(scan, recursive):
+def anubis_scan(value, recursive):
     options = {'--additional-info': False,
                '--file': False,
                '--help': False,
@@ -214,34 +214,23 @@ def anubis_scan(scan, recursive):
                '-b': False,
                'FILE': None,
                'FILENAME': None,
-               'TARGET': scan['value']}
+               'TARGET': value}
 
     command = Target(options)
     sub_domains = command.run()
     if recursive:
         for each in sub_domains:
-            if each.endswith(scan['value']):
+            if each.endswith(value):
                 recursive_sub_domains.add(each)
     else:
         return sub_domains
 
 
-def threader():
-    while True:
-        worker = q.get()
-        anubis_scan(worker, True)
-        q.task_done()
-        if q.empty():
-            break
+def main_scan(value):
 
+    level1_data = set(anubis_scan(value, False))
 
-def main_scan(scan):
-    scan['status'] = 'running'
-    utils.mark_db_request(scan, 'domain_expansion')
-
-    level1_data = set(anubis_scan(scan, False))
-
-    cleaned_up_data = [x for x in level1_data if x.endswith(scan['value']) and not x.startswith('*')]
+    cleaned_up_data = [x for x in level1_data if x.endswith(value) and not x.startswith('*')]
 
     return cleaned_up_data
 

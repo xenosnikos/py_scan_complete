@@ -50,6 +50,8 @@ def rdp_scan(host, port):
     enc_levels = {"\x00": ["None", False], "\x01": ["Low", False], "\x02": ["Client Compatible", False],
                   "\x03": ["High", False], "\x04": ["FIPS 140-1", False]}
 
+    LATIN_1 = 'latin-1'
+
     # Received errors
     errors = {}
 
@@ -61,9 +63,9 @@ def rdp_scan(host, port):
         try:
             s.connect((host, port))
         except:
-            return 'Cannot connect'
-        s.send(packet.encode('latin-1'))
-        response = s.recv(1024).decode('latin-1')
+            return 'cannot connect'
+        s.send(packet.encode(LATIN_1))
+        response = s.recv(1024).decode(LATIN_1)
 
         if response[3] == "\x0b":
             enc_protocols["\x00"][1] = True
@@ -111,12 +113,12 @@ def rdp_scan(host, port):
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect((host, port))
-                s.send(first_packet.encode('latin-1'))
-                response = s.recv(1024).decode('latin-1')
+                s.send(first_packet.encode(LATIN_1))
+                response = s.recv(1024).decode(LATIN_1)
 
                 sys.stdout.flush()
-                s.send(second_packet.encode('latin-1'))
-                response = s.recv(1024).decode('latin-1')
+                s.send(second_packet.encode(LATIN_1))
+                response = s.recv(1024).decode(LATIN_1)
             except socket.error:
                 s.close()
                 continue

@@ -43,7 +43,7 @@ class RDPScan(Resource):
         if not utils.validate_ip(value):  # if regex doesn't match throw a 400
             logger.debug(f"IP that doesn't match regex request received - {value}")
             return {
-                       common_strings.strings['message']: f"{value}" + common_strings.strings['invalid_domain_ip']
+                       common_strings.strings['message']: f"{value}" + common_strings.strings['invalid_ip']
                    }, 400
 
         # ping and ip_reachable methods are both inconsistent, we won't be using any method as it stands to make a
