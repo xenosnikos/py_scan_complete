@@ -8,11 +8,9 @@ import pymongo
 from datetime import datetime, timedelta
 import validators
 from helpers import auth_check, queue_to_db, port_scan_rec
-from helpers.requests_retry import retry_session
+from helpers.mongo_connection import db
 import logging
 
-client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
-db = client.test
 
 # add_to_db = Queue(name='portScan_db_queue', connection=redis.from_url(url=os.environ.get('REDIS_CONN_STRING')), default_timeout=-1)
 logging.info(f"Environment variable {os.environ.get('REDIS_CONN_STRING')} to Redis Conn String")
