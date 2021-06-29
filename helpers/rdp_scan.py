@@ -101,11 +101,13 @@ def process(ip):
     if output[common_strings.strings['output_ntlm']] == common_strings.strings['error']:
         logger.error(f'NTLM scan failed, skipping NTLM results')
     else:
-        if output[common_strings.strings['output_ntlm']] is not None:
+        if output[common_strings.strings['output_ntlm']] is not None and output[common_strings.strings['output_ntlm']] != '':
             risk = 'MEDIUM_RISK'
 
     if common_strings.strings['error_enum'] in output:
         logger.error(f'Enum encryption scan failed, skipping Enum results')
+    elif 'supported_encryption_protocols' not in output:
+        logger.debug('Both ports 3389 and 3388 are not open')
     else:
         if 'CredSSP (NLA)' not in output['supported_encryption_protocols'] or \
                 'RDSTLS' not in output['supported_encryption_protocols']:
