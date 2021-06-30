@@ -5,7 +5,7 @@ from helpers import auth_check, port_scan_rec, port_scan_nmap, logging_setup, co
 
 """
 API Call: POST
-Endpoint: https://{url}/port-scan/full?force=true
+Endpoint: https://{url}/port-scan/quick?force=true
 Body: {
         "value": "idagent.com"
       }
@@ -22,7 +22,7 @@ request_args.add_argument(common_strings.strings['input_threaded'], type=inputs.
 logger = logging_setup.initialize(common_strings.strings['port-scan'], 'logs/port-scan_api.log')
 
 
-class PortScanFull(Resource):
+class PortScanQuick(Resource):
 
     @staticmethod
     def post():
@@ -30,7 +30,7 @@ class PortScanFull(Resource):
 
         value = args[common_strings.strings['key_value']]
 
-        logger.debug(f"Port scan full request received for {value}")
+        logger.debug(f"Port scan quick request received for {value}")
 
         auth = request.headers.get(common_strings.strings['auth'])
 
@@ -61,7 +61,7 @@ class PortScanFull(Resource):
             force = False
 
         # based on force - either gives data back from database or gets a True status back to continue with a fresh scan
-        check = utils.check_force(value, force, collection=common_strings.strings['port-scan-full'],
+        check = utils.check_force(value, force, collection=common_strings.strings['port-scan-quick'],
                                   timeframe=int(os.environ.get('DATABASE_LOOK_BACK_TIME')))
 
         # if a scan is already requested/in-process, we send a 202 indicating that we are working on it
@@ -69,39 +69,40 @@ class PortScanFull(Resource):
             return {'status': check}, 202
         # if database has an entry with results, send it
         elif type(check) == dict and check['status'] == common_strings.strings['status_finished']:
-            logger.debug(f"port scan full response sent for {value} from database lookup")
+            logger.debug(f"port scan quick response sent for {value} from database lookup")
             return check['output'], 200
         else:
             # mark in db that the scan is queued
             utils.mark_db_request(value, status=common_strings.strings['status_queued'],
-                                  collection=common_strings.strings['port-scan-full'])
+                                  collection=common_strings.strings['port-scan-quick'])
             output = {common_strings.strings['key_value']: value, common_strings.strings['key_ip']: ip}
 
             if args[common_strings.strings['input_threaded']]:
 
                 try:
-                    out = port_scan_rec.port_scan(ip, 'full')
+                    out = port_scan_rec.port_scan(ip, 'quick')
                 except Exception as e:
-                    logger.critical(f"Multi threaded port scan full ran into an issue for {value, e}")
+                    logger.critical(f"Multi threaded port scan quick ran into an issue for {value, e}")
                     out = [common_strings.strings['error']]
 
             else:
 
                 try:
-                    out = port_scan_nmap.nmap_scan(ip, 'full')
+                    out = port_scan_nmap.nmap_scan(ip, 'quick')
                 except Exception as e:
-                    logger.critical(f"NMAP port scan full ran into an issue for {value, e}")
+                    logger.critical(f"NMAP port scan quick ran into an issue for {value, e}")
                     out = [common_strings.strings['error']]
 
             if out != [common_strings.strings['error']]:
                 output['count'] = len(out)
                 output['result'] = out
                 output['risk'] = None
-                queue_to_db.port_scan_db_addition(value, output, collection=common_strings.strings['port-scan-full'])
-                logger.debug(f"port scan full response sent for {value} from new scan")
+                queue_to_db.port_scan_db_addition(value, output, collection=common_strings.strings['port-scan-quick'])
+                logger.debug(f"port scan quick response sent for {value} from new scan")
                 return output, 200
             else:
                 output['count'] = 0
                 output['result'] = out
-                logger.debug(f"port scan full response sent for {value} from new scan with an error status")
+                output['risk'] = common_strings.strings['error']
+                logger.debug(f"port scan quick response sent for {value} from new scan with an error status")
                 return output, 503

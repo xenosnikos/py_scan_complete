@@ -100,7 +100,21 @@ class DomainExpansion(Resource):
 
             logger.debug(f"anubis expansion scan for {value} is complete")
 
-            if output_sublistr != common_strings.strings['error'] and output_anubis != common_strings.strings['error']:
+            if output_sublistr == common_strings.strings['error'] and output_anubis == common_strings.strings['error']:
+                output['sub_domain_count'] = 0
+
+                if args[common_strings.strings['format_by_ip']]:
+                    output['unique_ips_count'] = 0
+
+                output['sub_domains'] = common_strings.strings['error']
+                return output, 503
+            else:
+
+                if output_sublistr == common_strings.strings['error']:
+                    output_sublistr = []
+                elif output_anubis == common_strings.strings['error']:
+                    output_anubis = []
+
                 output_set = set(output_sublistr + output_anubis)
                 formatted_output, blacklist, output['sub_domain_count'] = utils.format_by_ip(
                     output_set, args[common_strings.strings['format_by_ip']]
@@ -113,11 +127,3 @@ class DomainExpansion(Resource):
                 output['sub_domains'] = formatted_output
                 queue_to_db.expansion_response_db_addition(value, output)
                 return output, 200
-            else:
-                output['sub_domain_count'] = 0
-
-                if args[common_strings.strings['format_by_ip']]:
-                    output['unique_ips_count'] = 0
-
-                output['sub_domains'] = common_strings.strings['error']
-                return output, 503
