@@ -19,7 +19,7 @@ request_args.add_argument(common_strings.strings['key_value'], help=common_strin
 request_args.add_argument(common_strings.strings['input_force'], type=inputs.boolean, default=False)
 request_args.add_argument(common_strings.strings['input_threaded'], type=inputs.boolean, default=True)
 
-logger = logging_setup.initialize(common_strings.strings['port-scan'], 'logs/port-scan_api.log')
+logger = logging_setup.initialize(common_strings.strings['port-scan-full'], 'logs/port-scan-full_api.log')
 
 
 class PortScanFull(Resource):
@@ -80,7 +80,7 @@ class PortScanFull(Resource):
             if args[common_strings.strings['input_threaded']]:
 
                 try:
-                    out = port_scan_rec.port_scan(ip, utils.PortScanEnum(3).name)
+                    out = port_scan_rec.port_scan(ip, utils.PortScanEnum.full.name)
                 except Exception as e:
                     logger.critical(f"Multi threaded port scan full ran into an issue for {value, e}")
                     out = [common_strings.strings['error']]
@@ -88,7 +88,7 @@ class PortScanFull(Resource):
             else:
 
                 try:
-                    out = port_scan_nmap.nmap_scan(ip, utils.PortScanEnum(3).name)
+                    out = port_scan_nmap.nmap_scan(ip, utils.PortScanEnum.full.name)
                 except Exception as e:
                     logger.critical(f"NMAP port scan full ran into an issue for {value, e}")
                     out = [common_strings.strings['error']]

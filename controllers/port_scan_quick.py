@@ -19,7 +19,7 @@ request_args.add_argument(common_strings.strings['key_value'], help=common_strin
 request_args.add_argument(common_strings.strings['input_force'], type=inputs.boolean, default=False)
 request_args.add_argument(common_strings.strings['input_threaded'], type=inputs.boolean, default=True)
 
-logger = logging_setup.initialize(common_strings.strings['port-scan'], 'logs/port-scan_api.log')
+logger = logging_setup.initialize(common_strings.strings['port-scan-quick'], 'logs/port-scan-quick_api.log')
 
 
 class PortScanQuick(Resource):
@@ -80,7 +80,7 @@ class PortScanQuick(Resource):
             if args[common_strings.strings['input_threaded']]:
 
                 try:
-                    out = port_scan_rec.port_scan(ip, utils.PortScanEnum(1).name)
+                    out = port_scan_rec.port_scan(ip, utils.PortScanEnum.quick.name)
                 except Exception as e:
                     logger.critical(f"Multi threaded port scan quick ran into an issue for {value, e}")
                     out = [common_strings.strings['error']]
@@ -88,7 +88,7 @@ class PortScanQuick(Resource):
             else:
 
                 try:
-                    out = port_scan_nmap.nmap_scan(ip, utils.PortScanEnum(1).name)
+                    out = port_scan_nmap.nmap_scan(ip, utils.PortScanEnum.quick.name)
                 except Exception as e:
                     logger.critical(f"NMAP port scan quick ran into an issue for {value, e}")
                     out = [common_strings.strings['error']]
