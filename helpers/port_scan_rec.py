@@ -1,10 +1,10 @@
 import socket
 import threading
-from queue import Queue
+import queue
 import os
 import logging
 
-from helpers import common_strings
+from helpers import common_strings, utils
 from helpers.mongo_connection import db
 
 socket.setdefaulttimeout(3)
@@ -30,11 +30,12 @@ def scan(port):
 
 def threader():
     while True:
-        worker = q.get()
+        try:
+            worker = q.get(timeout=0.1)
+        except queue.Empty:
+            break
         scan(worker)
         q.task_done()
-        if q.empty():
-            break
 
 
 def port_scan(input_ip, scan_type):
@@ -43,15 +44,17 @@ def port_scan(input_ip, scan_type):
     ip = input_ip
     logger.debug(f'{ip} is received for port scan')
 
-    if scan_type == 'quick':
+    if scan_type == utils.PortScanEnum(1).name:
         scan_list = db.portPriority.find({'count': {'$gte': 38000}}, {'_id': 0, 'port': 1})
-        thread = 170
-    elif scan_type == 'full':
+        thread = 200
+    elif scan_type == utils.PortScanEnum(2).name:
+        scan_list = db.portPriority.find({'count': {'$gte': 994}}, {'_id': 0, 'port': 1})
+        thread = 1001
+    elif scan_type == utils.PortScanEnum(3).name:
         scan_list = range(1, 65536)
         thread = int(os.environ.get('MAX_THREADS'))
     else:
-        scan_list = db.portPriority.find({'count': {'$gte': 994}}, {'_id': 0, 'port': 1})
-        thread = 900
+        raise Exception('Scan type not recognised')
 
     for worker in scan_list:
         if type(worker) is dict:
@@ -82,4 +85,4 @@ def port_scan(input_ip, scan_type):
     return port_list
 
 
-q = Queue()
+q = queue.Queue()

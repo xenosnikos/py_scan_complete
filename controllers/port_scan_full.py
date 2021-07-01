@@ -80,7 +80,7 @@ class PortScanFull(Resource):
             if args[common_strings.strings['input_threaded']]:
 
                 try:
-                    out = port_scan_rec.port_scan(ip, 'full')
+                    out = port_scan_rec.port_scan(ip, utils.PortScanEnum(3).name)
                 except Exception as e:
                     logger.critical(f"Multi threaded port scan full ran into an issue for {value, e}")
                     out = [common_strings.strings['error']]
@@ -88,7 +88,7 @@ class PortScanFull(Resource):
             else:
 
                 try:
-                    out = port_scan_nmap.nmap_scan(ip, 'full')
+                    out = port_scan_nmap.nmap_scan(ip, utils.PortScanEnum(3).name)
                 except Exception as e:
                     logger.critical(f"NMAP port scan full ran into an issue for {value, e}")
                     out = [common_strings.strings['error']]

@@ -2,7 +2,7 @@ import nmap
 import logging
 
 from helpers.mongo_connection import db
-from helpers import common_strings
+from helpers import common_strings, utils
 
 logger = logging.getLogger(common_strings.strings['port-scan'])
 
@@ -10,12 +10,14 @@ logger = logging.getLogger(common_strings.strings['port-scan'])
 def nmap_scan(ip, scan_type):
     nmap_port_scan = nmap.PortScanner()
 
-    if scan_type == 'quick':
+    if scan_type == utils.PortScanEnum(1).name:
         nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-sT -Pn --top-ports 200')
-    elif scan_type == 'full':
+    elif scan_type == utils.PortScanEnum(2).name:
+        nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-sT -Pn --top-ports 1000')
+    elif scan_type == utils.PortScanEnum(3).name:
         nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-p- -sT -Pn')
     else:
-        nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-sT -Pn --top-ports 1000')
+        raise Exception('Scan type not recognised')
 
     scan_output = nmap_port_scanner['scan'][ip]['tcp']
 
