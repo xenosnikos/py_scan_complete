@@ -44,13 +44,13 @@ def port_scan(input_ip, scan_type):
     ip = input_ip
     logger.debug(f'{ip} is received for port scan')
 
-    if scan_type == utils.PortScanEnum(1).name:
+    if scan_type == utils.PortScanEnum.quick.name:
         scan_list = db.portPriority.find({'count': {'$gte': 38000}}, {'_id': 0, 'port': 1})
         thread = 200
-    elif scan_type == utils.PortScanEnum(2).name:
+    elif scan_type == utils.PortScanEnum.regular.name:
         scan_list = db.portPriority.find({'count': {'$gte': 994}}, {'_id': 0, 'port': 1})
         thread = 1001
-    elif scan_type == utils.PortScanEnum(3).name:
+    elif scan_type == utils.PortScanEnum.full.name:
         scan_list = range(1, 65536)
         thread = int(os.environ.get('MAX_THREADS'))
     else:

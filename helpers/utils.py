@@ -5,7 +5,7 @@ import validators
 from datetime import datetime, timedelta
 import nmap
 import json
-from enum import Enum, auto
+from enum import Enum
 
 from helpers.mongo_connection import db
 from helpers.requests_retry import retry_session
@@ -175,6 +175,6 @@ def delete_db_record(value, collection):
 
 
 class PortScanEnum(Enum):
-    quick = auto()
-    regular = auto()
-    full = auto()
+    quick = 1
+    regular = 2
+    full = 3

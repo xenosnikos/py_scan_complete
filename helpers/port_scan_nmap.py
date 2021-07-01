@@ -10,11 +10,11 @@ logger = logging.getLogger(common_strings.strings['port-scan'])
 def nmap_scan(ip, scan_type):
     nmap_port_scan = nmap.PortScanner()
 
-    if scan_type == utils.PortScanEnum(1).name:
+    if scan_type == utils.PortScanEnum.quick.name:
         nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-sT -Pn --top-ports 200')
-    elif scan_type == utils.PortScanEnum(2).name:
+    elif scan_type == utils.PortScanEnum.regular.name:
         nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-sT -Pn --top-ports 1000')
-    elif scan_type == utils.PortScanEnum(3).name:
+    elif scan_type == utils.PortScanEnum.full.name:
         nmap_port_scanner = nmap_port_scan.scan(hosts=ip, arguments='-p- -sT -Pn')
     else:
         raise Exception('Scan type not recognised')
