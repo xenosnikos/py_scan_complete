@@ -21,8 +21,8 @@ from controllers.rdp_scan_api import RDPScan
 from controllers.domain_expansion import DomainExpansion
 from controllers.darkweb_scan_api import DarkWebScan
 from controllers.blacklist_scan_api import BlacklistScan
-from controllers.port_scan_regular import PortScanRegular
-from controllers.port_scan_full import PortScanExtended
+from controllers.port_scan_quick import PortScanQuick
+from controllers.port_scan_full import PortScanFull
 
 app = Flask(__name__)
 api = Api(app)
@@ -32,9 +32,9 @@ api.add_resource(V1DomainExpansion, "/expansion")
 api.add_resource(V1PortScan, "/portScan")
 
 # version 2 apis
-api.add_resource(PortScan, "/v2/portScan")
-api.add_resource(PortScanRegular, "/v2/portScan/regular")
-api.add_resource(PortScanExtended, "/v2/portScan/full")  # will be changed when I start working on port scan API
+api.add_resource(PortScan, "/v2/port-scan")
+api.add_resource(PortScanQuick, "/v2/port-scan/quick")
+api.add_resource(PortScanFull, "/v2/port-scan/full")
 api.add_resource(InfrastructureAnalysis, "/v2/infrastructureAnalysis")
 api.add_resource(ConnectedDomains, "/v2/connectedDomains")
 api.add_resource(DomainReputation, "/v2/domainReputation")

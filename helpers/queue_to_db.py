@@ -18,10 +18,10 @@ def v1_port_scan_db_addition(value, output):
                                               'timeStamp': datetime.utcnow(), 'output': output}}, upsert=True)
 
 
-def port_scan_db_addition(value, output):
-    db.portScan.find_one_and_update({common_strings.strings['mongo_value']: value},
-                                    {'$set': {'status': common_strings.strings['status_finished'],
-                                              'timeStamp': datetime.utcnow(), 'output': output}})
+def port_scan_db_addition(value, output, collection):
+    db[collection].find_one_and_update({common_strings.strings['mongo_value']: value},
+                                       {'$set': {'status': common_strings.strings['status_finished'],
+                                                 'timeStamp': datetime.utcnow(), 'output': output}})
 
 
 def infrastructure_analysis_db_addition(value):
@@ -61,7 +61,8 @@ def trustymail_db_addition(value):
 
 
 def hafnium_response_db_addition(value):
-    db.hafnium.find_one_and_update({'domain': value['domain']}, {'$set': {'status': 'finished', 'timeStamp': datetime.utcnow(), 'output': value['output']}})
+    db.hafnium.find_one_and_update({'domain': value['domain']}, {
+        '$set': {'status': 'finished', 'timeStamp': datetime.utcnow(), 'output': value['output']}})
     logs.Logging.add('hafnium scan', value['domain'], 'adding completed records to DB', 'response queue job complete')
 
 
