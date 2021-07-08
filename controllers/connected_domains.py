@@ -62,7 +62,7 @@ class ConnectedDomains(Resource):
 
                     list_scans['connectedDomains'] = out['domains']
                 else:
-                    list_scans['connectedDomains'] = 'Currently unavailable'
+                    list_scans['connectedDomains'] = ['Currently unavailable']
             else:
                 return {
                            'message': f'{val} is not a valid IP or Domain, please try again'
