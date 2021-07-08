@@ -6,7 +6,7 @@ from helpers import auth_check, utils, blacklist_scan, common_strings, logging_s
 
 """
 API Call: POST
-Endpoint: https://{url}/blacklist?force=true
+Endpoint: https://{url}/v2/blacklist?force=true
 Body: {
         "value": "idagent.com"
       }
@@ -49,8 +49,8 @@ class BlacklistScan(Resource):
         # if domain doesn't resolve into an IP, throw a 400 as domain doesn't exist in the internet
         try:
             ip = utils.resolve_domain_ip(value)
-        except:
-            logger.debug(f"Domain that doesn't resolve to an IP - {value}")
+        except Exception as e:
+            logger.debug(f"Domain that doesn't resolve to an IP requested - {value, e}")
             return {
                        common_strings.strings['message']: f"{value}" + common_strings.strings['unresolved_domain_ip']
                    }, 400

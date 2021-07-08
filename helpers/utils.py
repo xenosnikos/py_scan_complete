@@ -19,7 +19,7 @@ def validate_domain(domain):
         return True
 
 
-def validate_domain_ip(value):
+def validate_domain_or_ip(value):
     if not (validators.domain(value) or validators.ipv4(value)):
         return False
     else:
@@ -56,9 +56,9 @@ def mark_db_request(value, status, collection):
     try:
         db[collection].update_one({common_strings.strings['mongo_value']: value}, {'$set': {'status': status}},
                                   upsert=True)
-    except:
+    except Exception as e:
         logger = logging.getLogger(collection)
-        logger.critical(common_strings.strings['database_issue'])
+        logger.critical(common_strings.strings['database_issue'], e)
     return True
 
 
@@ -144,7 +144,8 @@ def format_by_ip(sub_domains, out_format):
 
     if out_format:
         for each_item in out_dict:
-            out_list.append({'ip': each_item, 'domains': out_dict[each_item], 'location': get_location_ip(each_item)})
+            out_list.append({'ip': each_item, 'domains': out_dict[each_item],
+                             common_strings.strings['location']: get_location_ip(each_item)})
 
     for each_blacklist in blacklist_dict:
         out_blacklist.append({'count': blacklist_dict[each_blacklist],
@@ -169,9 +170,9 @@ def ip_reachable_check(ip):
 def delete_db_record(value, collection):
     try:
         db[collection].find_one_and_delete({common_strings.strings['mongo_value']: value})
-    except:
+    except Exception as e:
         logger = logging.getLogger(collection)
-        logger.critical(common_strings.strings['database_issue'])
+        logger.critical(common_strings.strings['database_issue'], e)
 
 
 class PortScanEnum(Enum):

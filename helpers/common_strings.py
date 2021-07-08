@@ -1,8 +1,11 @@
 strings = {
     'invalid_domain': ' is not a valid domain, please try again',
     'invalid_ip': ' is not a valid IP, please try again',
+    'invalid_domain_or_ip': ' is not a valid domain or IP, please try again',
     'unresolved_domain_ip': ' is not available or cannot be reached right now, please check and try again later',
     'domain_required': 'Domain is required to scan',
+    'ip_required': 'IP is required to scan',
+    'domain_or_ip_required': 'Domain or IP is required to scan',
     'auth': 'Authorization',
     'status_queued': 'queued',
     'status_running': 'running',
@@ -14,6 +17,7 @@ strings = {
     'port-scan': 'port-scan',
     'port-scan-quick': 'port-scan-quick',
     'port-scan-full': 'port-scan-full',
+    'ip-check': 'ip-check',
     'key_value': 'value',
     'format_by_ip': 'format_by_ip',
     'input_threaded': 'threaded',
@@ -24,5 +28,7 @@ strings = {
     'output_ntlm': 'ntlm',
     'message': 'message',
     'error_enum': 'error_enum',
-    'error_ntlm': 'error_ntlm'
+    'error_ntlm': 'error_ntlm',
+    'location': 'location',
+    'output_domain': 'domain'
 }

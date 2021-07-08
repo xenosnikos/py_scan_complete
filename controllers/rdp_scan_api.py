@@ -6,7 +6,7 @@ from helpers import auth_check, rdp_scan, common_strings, logging_setup, queue_t
 
 """
 API Call: POST
-Endpoint: https://{url}/rdp?force=true
+Endpoint: https://{url}/v2/rdp?force=true
 Body: {
         "value": "173.10.20.70"
       }
@@ -15,7 +15,7 @@ Authorization: Needed
 
 request_args = reqparse.RequestParser()
 
-request_args.add_argument(common_strings.strings['key_value'], help=common_strings.strings['domain_required'],
+request_args.add_argument(common_strings.strings['key_value'], help=common_strings.strings['domain_or_ip_required'],
                           required=True)
 request_args.add_argument(common_strings.strings['input_force'], type=inputs.boolean, required=False, default=False)
 
@@ -40,10 +40,20 @@ class RDPScan(Resource):
             logger.debug(f"Unauthenticated RDP scan request received for {value}")
             return authentication, 401
 
-        if not utils.validate_ip(value):  # if regex doesn't match throw a 400
-            logger.debug(f"IP that doesn't match regex request received - {value}")
+        if not utils.validate_domain_or_ip(value):  # if regex doesn't match throw a 400
+            logger.debug(f"Domain/IP that doesn't match regex request received - {value}")
             return {
                        common_strings.strings['message']: f"{value}" + common_strings.strings['invalid_ip']
+                   }, 400
+
+        # if domain doesn't resolve into an IP, throw a 400 as domain doesn't exist in the internet
+        try:
+            ip = utils.resolve_domain_ip(value)
+        except Exception as e:
+            logger.debug(f"Domain that doesn't resolve to an IP was requested - {value, e}")
+            return {
+                       common_strings.strings['message']: f"{value}" + common_strings.strings[
+                           'unresolved_domain_ip']
                    }, 400
 
         # ping and ip_reachable methods are both inconsistent, we won't be using any method as it stands to make a
@@ -76,10 +86,11 @@ class RDPScan(Resource):
             # mark in db that the scan is queued
             utils.mark_db_request(value, status=common_strings.strings['status_queued'],
                                   collection=common_strings.strings['rdp'])
-            output = {common_strings.strings['key_value']: value}
+            output = {common_strings.strings['key_value']: value, common_strings.strings['key_ip']: ip,
+                      common_strings.strings['output_domain']: value if utils.validate_domain(value) else ''}
 
             try:
-                out = rdp_scan.process(value)
+                out = rdp_scan.process(ip)
                 output.update(out)
                 if common_strings.strings['error_enum'] in output or common_strings.strings['error_ntlm'] in output:
                     return output, 503
@@ -91,13 +102,13 @@ class RDPScan(Resource):
                         logger.critical(common_strings.strings['database_issue'], e)
 
                     return output, 200
-            except Exception as e:
+            except Exception as er:
 
                 try:
                     utils.delete_db_record(value, collection=common_strings.strings['rdp'])
                 except Exception as e:
                     logger.critical(common_strings.strings['database_issue'], e)
 
-                logger.error(f'Exception occurred in rdp scan process {e}')
+                logger.error(f'Exception occurred in rdp scan process {er}')
                 output.update({common_strings.strings['error_enum']: True, common_strings.strings['error_ntlm']: True})
                 return output, 503
