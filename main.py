@@ -23,6 +23,7 @@ from controllers.darkweb_scan_api import DarkWebScan
 from controllers.blacklist_scan_api import BlacklistScan
 from controllers.port_scan_quick import PortScanQuick
 from controllers.port_scan_full import PortScanFull
+from controllers.ip_check_api import IpCheck
 
 app = Flask(__name__)
 api = Api(app)
@@ -50,6 +51,7 @@ api.add_resource(RDPScan, "/v2/rdp")
 api.add_resource(DomainExpansion, "/v2/expansion")
 api.add_resource(DarkWebScan, "/v2/darkweb")
 api.add_resource(BlacklistScan, "/v2/blacklist")
+api.add_resource(IpCheck, "/v2/ip-check")
 api.add_resource(scans_available.AvailableScans, '/v2/supportedScans')
 api.add_resource(queue_status.QueueStatus, "/v2/queue/status/conf")
 

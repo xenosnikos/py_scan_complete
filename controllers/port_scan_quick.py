@@ -5,7 +5,7 @@ from helpers import auth_check, port_scan_rec, port_scan_nmap, logging_setup, co
 
 """
 API Call: POST
-Endpoint: https://{url}/port-scan/quick?force=true
+Endpoint: https://{url}/v2/port-scan/quick?force=true
 Body: {
         "value": "idagent.com"
       }
@@ -14,7 +14,7 @@ Authorization: Needed
 
 request_args = reqparse.RequestParser()
 
-request_args.add_argument(common_strings.strings['key_value'], help=common_strings.strings['domain_required'],
+request_args.add_argument(common_strings.strings['key_value'], help=common_strings.strings['domain_or_ip_required'],
                           required=True)
 request_args.add_argument(common_strings.strings['input_force'], type=inputs.boolean, default=False)
 request_args.add_argument(common_strings.strings['input_threaded'], type=inputs.boolean, default=True)
@@ -40,17 +40,17 @@ class PortScanQuick(Resource):
             logger.debug(f"Unauthenticated port scan request received for {value}")
             return authentication, 401
 
-        if not utils.validate_domain(value):  # if regex doesn't match throw a 400
-            logger.debug(f"Domain that doesn't match regex request received - {value}")
+        if not utils.validate_domain_or_ip(value):  # if regex doesn't match throw a 400
+            logger.debug(f"Domain/IP that doesn't match regex request received - {value}")
             return {
-                       common_strings.strings['message']: f"{value}" + common_strings.strings['invalid_domain']
+                       common_strings.strings['message']: f"{value}" + common_strings.strings['invalid_domain_or_ip']
                    }, 400
 
         # if domain doesn't resolve into an IP, throw a 400 as domain doesn't exist in the internet
         try:
             ip = utils.resolve_domain_ip(value)
         except Exception as e:
-            logger.debug(f"Domain that doesn't resolve to an IP - {value, e}")
+            logger.debug(f"Domain that doesn't resolve to an IP requested - {value, e}")
             return {
                        common_strings.strings['message']: f"{value}" + common_strings.strings['unresolved_domain_ip']
                    }, 400
@@ -75,7 +75,8 @@ class PortScanQuick(Resource):
             # mark in db that the scan is queued
             utils.mark_db_request(value, status=common_strings.strings['status_queued'],
                                   collection=common_strings.strings['port-scan-quick'])
-            output = {common_strings.strings['key_value']: value, common_strings.strings['key_ip']: ip}
+            output = {common_strings.strings['key_value']: value, common_strings.strings['key_ip']: ip,
+                      common_strings.strings['output_domain']: value if utils.validate_domain(value) else ''}
 
             if args[common_strings.strings['input_threaded']]:
 
