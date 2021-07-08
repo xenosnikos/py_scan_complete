@@ -1,37 +1,27 @@
-import socket, threading
-from queue import Queue
-import pymongo
-import logging
+import socket
+import threading
+import queue
 import os
-import sys
+import logging
 
-client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
-db = client.test
-
-logging.basicConfig(filename='logs/port_scan.log', format='%(asctime)s %(levelname)s %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
-logger = logging.getLogger(__name__)
-stream_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stream_handler)
+from helpers import common_strings, utils
+from helpers.mongo_connection import db
 
 socket.setdefaulttimeout(3)
-print_lock = threading.Lock()
 
 ports = []
 ip = None
 
+logger = logging.getLogger(common_strings.strings['port-scan'])
 
-# Not in use after NMAP scanning, wanted to leave the code just in case
+
 def scan(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
             s.connect((ip, port))
             ports.append(port)
-            with print_lock:
-                print(port, 'is open')
-            # s.close()
         except ConnectionRefusedError:
-            logger.info(f"Connection refused, port: {port}")
+            logger.debug(f"Connection refused, port: {port}")
         except socket.timeout:
             pass
         except Exception as e:
@@ -40,44 +30,59 @@ def scan(port):
 
 def threader():
     while True:
-        worker = q.get()
+        try:
+            worker = q.get(timeout=0.1)
+        except queue.Empty:
+            break
         scan(worker)
         q.task_done()
-        if q.empty():
-            break
 
 
-def port_scan(input_ip):
+def port_scan(input_ip, scan_type):
     global ports
     global ip
     ip = input_ip
-    logger.info(f'message {ip} from queue is received')
-    print(" [x] Received %r" % ip)
+    logger.debug(f'{ip} is received for port scan')
 
-    scan_list = db.portPriority.find({'count': {'$gte': 1000}}, {'_id': 0, 'port': 1})
-    logger.info(f"Output of scan_list1, {scan_list}")
-    threads = 1000
+    if scan_type == utils.PortScanEnum.quick.name:
+        scan_list = db.portPriority.find({'count': {'$gte': 38000}}, {'_id': 0, 'port': 1})
+        thread = 200
+    elif scan_type == utils.PortScanEnum.regular.name:
+        scan_list = db.portPriority.find({'count': {'$gte': 994}}, {'_id': 0, 'port': 1})
+        thread = 1001
+    elif scan_type == utils.PortScanEnum.full.name:
+        scan_list = range(1, 65536)
+        thread = int(os.environ.get('MAX_THREADS'))
+    else:
+        raise Exception('Scan type not recognised')
 
     for worker in scan_list:
-        q.put(worker['port'])
+        if type(worker) is dict:
+            q.put(worker['port'])
+        else:
+            q.put(worker)
 
-    logger.info(f"Worker puts done, {q.qsize()}")
+    logger.debug(f"Worker puts done, {q.qsize()}")
 
-    for x in range(threads):
+    for x in range(thread):
         t = threading.Thread(target=threader, daemon=False)
         t.start()
 
-    logger.info(f"Threads created")
+    logger.debug(f"Threads created")
 
     q.join()
-    obj = {}
-    for each in ports:
-        obj[str(each)] = db.portInfo.find_one({'port': each}, {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
-    # db.scans.find_one_and_update({"_id": ObjectId(item_id)}, {"$set": {'portScanStatus': 'finished', 'openPorts': obj}})
-    print('done')
-    logger.info(f'message {ip} from queue is complete')
+    port_list = []
+
+    for each_port in ports:
+        port_dict = {'port': each_port, 'name': '', 'type': '', 'description': ''}
+        name_type_description = db.portInfo.find_one({'port': each_port},
+                                                     {'_id': 0, 'name': 1, 'type': 1, 'description': 1})
+        if name_type_description is not None:
+            port_dict.update(name_type_description)
+        port_list.append(port_dict)
+
     ports = []
-    return obj
+    return port_list
 
 
-q = Queue()
+q = queue.Queue()

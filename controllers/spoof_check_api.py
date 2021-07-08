@@ -7,19 +7,11 @@ import pymongo
 from datetime import datetime, timedelta
 import validators
 from helpers import auth_check, queue_to_db, spoofcheck
-
-client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
-db = client.test
-
-add_to_db = Queue(name='spoofCheck_db_queue', connection=redis.from_url(url='rediss://default:kzodr4urcjdpew09@pyscan-redis-stage-do-user-8532994-0.b.db.ondigitalocean.com:25061'))
+from helpers.mongo_connection import db
 
 portscan_args = reqparse.RequestParser()
 
 portscan_args.add_argument('value', help='Domain or IP is required to scan', required=True)
-portscan_args.add_argument('companyId', help='Company ID is required to associate scan results', required=True)
-portscan_args.add_argument('domainId', help='Domain ID is required to associate company with different domains',
-                           required=True)
-portscan_args.add_argument('spoofCheck', type=inputs.boolean, default=False)
 portscan_args.add_argument('force', type=inputs.boolean, default=False)
 
 
@@ -71,10 +63,5 @@ class SpoofCheck(Resource):
             del search['_id']
             del search['timeStamp']
             return search
-
-        message = {'mongo': str(item),
-                   'data': list_scans}
-
-        add_to_db.enqueue(queue_to_db.spoof_check_db_addition, message, retry=Retry(max=3, interval=[10, 30, 60]))
 
         return list_scans

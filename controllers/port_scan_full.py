@@ -1,86 +1,108 @@
 import os
+
 from flask_restful import Resource, reqparse, request, inputs
-import socket
-import redis
-from rq import Retry, Queue
-import json
-import pymongo
-from datetime import datetime, timedelta
-import validators
-from helpers import auth_check, queue_to_db, port_scan_rec
-from helpers.requests_retry import retry_session
-import logging
-import nmap
+from helpers import auth_check, port_scan_rec, port_scan_nmap, logging_setup, common_strings, utils, queue_to_db
 
-client = pymongo.MongoClient(os.environ.get('MONGO_CONN'))
-db = client.test
+"""
+API Call: POST
+Endpoint: https://{url}/v2/port-scan/full?force=true
+Body: {
+        "value": "idagent.com"
+      }
+Authorization: Needed
+"""
 
-# add_to_db = Queue(name='portScan_db_queue', connection=redis.from_url(url=os.environ.get('REDIS_CONN_STRING')), default_timeout=-1)
-logging.info(f"Environment variable {os.environ.get('REDIS_CONN_STRING')} to Redis Conn String")
-portscan_args = reqparse.RequestParser()
+request_args = reqparse.RequestParser()
 
-portscan_args.add_argument('value', help='Domain or IP is required to scan', required=True)
-portscan_args.add_argument('companyId', help='Company ID is required to associate scan results', required=True)
-portscan_args.add_argument('domainId', help='Domain ID is required to associate company with different domains',
-                           required=True)
-portscan_args.add_argument('portScan', type=inputs.boolean, default=False)
-portscan_args.add_argument('force', type=inputs.boolean, default=False)
+request_args.add_argument(common_strings.strings['key_value'], help=common_strings.strings['domain_or_ip_required'],
+                          required=True)
+request_args.add_argument(common_strings.strings['input_force'], type=inputs.boolean, default=False)
+request_args.add_argument(common_strings.strings['input_threaded'], type=inputs.boolean, default=True)
+
+logger = logging_setup.initialize(common_strings.strings['port-scan-full'], 'logs/port-scan-full_api.log')
 
 
-class PortScanExtended(Resource):
+class PortScanFull(Resource):
 
     @staticmethod
     def post():
-        auth = request.headers.get('Authorization')
+        args = request_args.parse_args()
+
+        value = args[common_strings.strings['key_value']]
+
+        logger.debug(f"Port scan full request received for {value}")
+
+        auth = request.headers.get(common_strings.strings['auth'])
 
         authentication = auth_check.auth_check(auth)
 
         if authentication['status'] == 401:
+            logger.debug(f"Unauthenticated port scan request received for {value}")
             return authentication, 401
 
-        args = portscan_args.parse_args()
+        if not utils.validate_domain_or_ip(value):  # if regex doesn't match throw a 400
+            logger.debug(f"Domain/IP that doesn't match regex request received - {value}")
+            return {
+                       common_strings.strings['message']: f"{value}" + common_strings.strings['invalid_domain_or_ip']
+                   }, 400
 
-        list_scans = {}
-        val = args['value']
-        db.portScan.create_index('value')
-        # see if we have an existing scan for given value and pull the latest
-        search = db.portScanExtended.find_one({'value': val}, sort=[('_id', pymongo.DESCENDING)])
+        # if domain doesn't resolve into an IP, throw a 400 as domain doesn't exist in the internet
+        try:
+            ip = utils.resolve_domain_ip(value)
+        except Exception as e:
+            logger.debug(f"Domain that doesn't resolve to an IP requested - {value, e}")
+            return {
+                       common_strings.strings['message']: f"{value}" + common_strings.strings['unresolved_domain_ip']
+                   }, 400
 
-        # force comes in as false by default
-        if args['force']:
+        if args[common_strings.strings['input_force']]:
             force = True
-        elif search is not None:
-            force = search['timeStamp'] + timedelta(days=2) < datetime.utcnow()
+        else:
+            force = False
 
-        if search is None or force is True:
+        # based on force - either gives data back from database or gets a True status back to continue with a fresh scan
+        check = utils.check_force(value, force, collection=common_strings.strings['port-scan-full'],
+                                  timeframe=int(os.environ.get('DATABASE_LOOK_BACK_TIME')))
 
-            if validators.domain(val) or validators.ip_address.ipv4(val):
-                ip = socket.gethostbyname(val)
+        # if a scan is already requested/in-process, we send a 202 indicating that we are working on it
+        if check == common_strings.strings['status_running'] or check == common_strings.strings['status_queued']:
+            return {'status': check}, 202
+        # if database has an entry with results, send it
+        elif type(check) == dict and check['status'] == common_strings.strings['status_finished']:
+            logger.debug(f"port scan full response sent for {value} from database lookup")
+            return check['output'], 200
+        else:
+            # mark in db that the scan is queued
+            utils.mark_db_request(value, status=common_strings.strings['status_queued'],
+                                  collection=common_strings.strings['port-scan-full'])
+            output = {common_strings.strings['key_value']: value, common_strings.strings['key_ip']: ip,
+                      common_strings.strings['output_domain']: value if utils.validate_domain(value) else ''}
 
-                item = db.portScan.insert_one(
-                    {'ip': ip, 'value': val,
-                     "timeStamp": datetime.utcnow()}).inserted_id
+            if args[common_strings.strings['input_threaded']]:
 
-                list_scans['ip'] = ip
-                list_scans['value'] = val
-
-                list_scans['port_scan_extended'] = None
-
-                nmap_port_scan = nmap.PortScanner()
-                patch_check = nmap_port_scan.scan(hosts=val, ports='1-6000')
+                try:
+                    out = port_scan_rec.port_scan(ip, utils.PortScanEnum.full.name)
+                except Exception as e:
+                    logger.critical(f"Multi threaded port scan full ran into an issue for {value, e}")
+                    out = [common_strings.strings['error']]
 
             else:
-                return {
-                           'message': f'{val} is not a valid IP or Domain, please try again'
-                       }, 400
-        else:
-            del search['_id']
-            del search['timeStamp']
-            return search
 
-        message = {'mongo': str(item),
-                   'data': list_scans}
+                try:
+                    out = port_scan_nmap.nmap_scan(ip, utils.PortScanEnum.full.name)
+                except Exception as e:
+                    logger.critical(f"NMAP port scan full ran into an issue for {value, e}")
+                    out = [common_strings.strings['error']]
 
-        # add_to_db.enqueue(queue_to_db.port_scan_db_addition, message, retry=Retry(max=3, interval=[10, 30, 60]))
-
-        return list_scans
+            if out != [common_strings.strings['error']]:
+                output['count'] = len(out)
+                output['result'] = out
+                output['risk'] = None
+                queue_to_db.port_scan_db_addition(value, output, collection=common_strings.strings['port-scan-full'])
+                logger.debug(f"port scan full response sent for {value} from new scan")
+                return output, 200
+            else:
+                output['count'] = 0
+                output['result'] = out
+                logger.debug(f"port scan full response sent for {value} from new scan with an error status")
+                return output, 503

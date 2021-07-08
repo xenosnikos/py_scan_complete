@@ -10,8 +10,18 @@ def blacklist_db_addition(value, output):
                                                'timeStamp': datetime.utcnow(), 'output': output}})
 
 
-def port_scan_db_addition(value):
-    db.portScan.find_one_and_update({'_id': ObjectId(value['mongo'])}, {'$set': value['data']})
+# in v1 we do not do status returns if something is in progress for port scan as ePlace doesn't expect that, so once we
+# have completed results we store them in database for a later retrieval, that's why we have an upsert=True argument
+def v1_port_scan_db_addition(value, output):
+    db.portScan.find_one_and_update({common_strings.strings['mongo_value']: value},
+                                    {'$set': {'status': common_strings.strings['status_finished'],
+                                              'timeStamp': datetime.utcnow(), 'output': output}}, upsert=True)
+
+
+def port_scan_db_addition(value, output, collection):
+    db[collection].find_one_and_update({common_strings.strings['mongo_value']: value},
+                                       {'$set': {'status': common_strings.strings['status_finished'],
+                                                 'timeStamp': datetime.utcnow(), 'output': output}})
 
 
 def infrastructure_analysis_db_addition(value):
@@ -51,20 +61,18 @@ def trustymail_db_addition(value):
 
 
 def hafnium_response_db_addition(value):
-    db.hafnium.find_one_and_update({'domain': value['domain']}, {'$set': {'status': 'finished', 'timeStamp': datetime.utcnow(), 'output': value['output']}})
+    db.hafnium.find_one_and_update({'domain': value['domain']}, {
+        '$set': {'status': 'finished', 'timeStamp': datetime.utcnow(), 'output': value['output']}})
     logs.Logging.add('hafnium scan', value['domain'], 'adding completed records to DB', 'response queue job complete')
 
 
-def rdp_response_db_addition(value):
-    db.rdp.find_one_and_update({'value': value['value']}, {'$set': {'status': 'finished', 'timeStamp': datetime.utcnow(), 'output': value['output']}})
-    logs.Logging.add('RDP scan', value['value'], 'adding completed records to DB', 'job complete')
+def rdp_response_db_addition(value, output):
+    db.rdp.find_one_and_update({common_strings.strings['mongo_value']: value},
+                               {'$set': {'status': common_strings.strings['status_finished'],
+                                         'timeStamp': datetime.utcnow(), 'output': output}})
 
 
-def expansion_response_db_addition(value):
-    output = {
-        'value': value['value'],
-        'count': value['count'],
-        'sub_domains': value['sub_domains']
-    }
-    db.expansion.find_one_and_update({'value': value['value']}, {'$set': {'status': 'finished', 'timeStamp': datetime.utcnow(), 'output': output}})
-    logs.Logging.add('Expansion scan', value['value'], 'adding completed records to DB', 'job complete')
+def expansion_response_db_addition(value, output):
+    db.expansion.find_one_and_update({common_strings.strings['mongo_value']: value},
+                                     {'$set': {'status': common_strings.strings['status_finished'],
+                                               'timeStamp': datetime.utcnow(), 'output': output}})

@@ -2,6 +2,8 @@ logs
 .idea
 .env
 gunicorn.conf.py
+test-gunicorn.conf.py
+prod-gunicorn.conf.py
 venv
 helpers/trustymail/.idea
 helpers/__pycache__

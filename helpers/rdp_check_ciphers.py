@@ -1,5 +1,10 @@
 import socket
 import sys
+import logging
+
+from helpers import common_strings
+
+logger = logging.getLogger(common_strings.strings['rdp'])
 
 
 def rdp_scan(host, port):
@@ -45,21 +50,22 @@ def rdp_scan(host, port):
     enc_levels = {"\x00": ["None", False], "\x01": ["Low", False], "\x02": ["Client Compatible", False],
                   "\x03": ["High", False], "\x04": ["FIPS 140-1", False]}
 
+    LATIN_1 = 'latin-1'
+
     # Received errors
     errors = {}
 
     # Enumerate supported protocols
     for n in enc_protocols.keys():
         packet = X224_CONNECTION_REQUEST % n
-        # print binascii.hexlify(n)
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect((host, port))
         except:
-            return 'Cannot connect'
-        s.send(packet.encode('latin-1'))
-        response = s.recv(1024).decode('latin-1')
+            return 'cannot connect'
+        s.send(packet.encode(LATIN_1))
+        response = s.recv(1024).decode(LATIN_1)
 
         if response[3] == "\x0b":
             enc_protocols["\x00"][1] = True
@@ -70,51 +76,32 @@ def rdp_scan(host, port):
             else:
                 errors[response[15]] = True
 
-        # print binascii.hexlify(response)
-
         s.close()
+
+    logger.debug('Supported protocols enumeration complete')
 
     supported_encryption_protocols = []
     unsupported_encryption_protocols = []
     error_messages_out = []
     supported_encryption_methods = []
     unsupported_encryption_methods = []
-    server_encryption_level = None
+    server_encryption_level = []
 
-    print()
-    print("====================")
-    print("ENCRYPTION PROTOCOLS")
-    print("====================")
-
-    print()
-    print("Supported")
-    print("---------")
+    # ENCRYPTION PROTOCOLS
+    # Supported & Unsupported encryption protocols
 
     for n in enc_protocols.keys():
         if enc_protocols[n][1]:
             supported_encryption_protocols.append(enc_protocols[n][0])
-            print(enc_protocols[n][0])
         else:
             unsupported_encryption_protocols.append(enc_protocols[n][0])
 
-    print()
-    print("Unsupported")
-    print("-----------")
+    logger.debug('Encryption protocol check complete')
 
-    for n in enc_protocols.keys():
-        if not enc_protocols[n][1]:
-            print(enc_protocols[n][0])
-
-    print()
-    print("Received error messages")
-    print("-----------------------")
+    # Received error messages
 
     for error in errors.keys():
         error_messages_out.append(error_messages[error])
-        print(error_messages[error])
-
-    if len(errors) == 0:
-        print("None")
 
     # Enumerate native RDP encryption methods and levels
     if enc_protocols["\x00"][1]:
@@ -122,65 +109,47 @@ def rdp_scan(host, port):
         for n in enc_methods.keys():
             first_packet = X224_NATIVE_RDP
             second_packet = CLIENT_MCS_CONNECT_INTIAL % n
-            # print "Request: ", binascii.hexlify(n)
 
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.connect((host, port))
-                s.send(first_packet.encode('latin-1'))
-                response = s.recv(1024).decode('latin-1')
+                s.send(first_packet.encode(LATIN_1))
+                response = s.recv(1024).decode(LATIN_1)
 
-                # print binascii.hexlify(response)
                 sys.stdout.flush()
-                s.send(second_packet.encode('latin-1'))
-                response = s.recv(1024).decode('latin-1')
+                s.send(second_packet.encode(LATIN_1))
+                response = s.recv(1024).decode(LATIN_1)
             except socket.error:
                 s.close()
                 continue
 
-            # print binascii.hexlify(response)
             for i in range(0, len(response)):
                 if response[i:i + 2] == "\x02\x0c":
-                    # print "Received: ", binascii.hexlify(response[i+4])
-                    # print "Level: ", binascii.hexlify(response[i+8])
                     enc_methods[response[i + 4]][1] = True
                     enc_levels[response[i + 8]][1] = True
                     break
 
             s.close()
 
-        print("\n")
-        print("=====================")
-        print("NATIVE RDP ENCRYPTION")
-        print("=====================")
+        logger.debug('RDP encryption enumeration complete')
 
-        print()
-        print("Supported encryption methods")
-        print("----------------------------")
+        # Supported & Unsupported encryption methods
 
         for n in enc_methods.keys():
             if enc_methods[n][1]:
                 supported_encryption_methods.append(enc_methods[n][0])
-                print(enc_methods[n][0])
             else:
                 unsupported_encryption_methods.append(enc_methods[n][0])
 
-        print()
-        print("Unsupported encryption methods")
-        print("------------------------------")
+        logger.debug('RDP encryption method complete')
 
-        for n in enc_methods.keys():
-            if not enc_methods[n][1]:
-                print(enc_methods[n][0])
-
-        print()
-        print("Server encryption level")
-        print("-----------------------")
+        # Server encryption level
 
         for n in enc_levels.keys():
             if enc_levels[n][1]:
-                server_encryption_level = enc_levels[n][0]
-                print(enc_levels[n][0])
+                server_encryption_level.append(enc_levels[n][0])
+
+        logger.debug('RDP encryption level complete')
 
     output = {
         "supported_encryption_protocols": supported_encryption_protocols,
