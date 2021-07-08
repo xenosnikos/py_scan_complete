@@ -76,3 +76,9 @@ def expansion_response_db_addition(value, output):
     db.expansion.find_one_and_update({common_strings.strings['mongo_value']: value},
                                      {'$set': {'status': common_strings.strings['status_finished'],
                                                'timeStamp': datetime.utcnow(), 'output': output}})
+
+
+def darkweb_response_db_addition(value, output):
+    db.darkweb.find_one_and_update({common_strings.strings['mongo_value']: value},
+                                   {'$set': {'status': common_strings.strings['status_finished'],
+                                             'timeStamp': datetime.utcnow(), 'output': output}})
