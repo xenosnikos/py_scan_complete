@@ -64,7 +64,7 @@ class SSLConfiguration(Resource):
 
                     list_scans['sslConfiguration'] = [out]
                 else:
-                    list_scans['sslConfiguration'] = 'Currently unavailable'
+                    list_scans['sslConfiguration'] = ['Currently unavailable']
             else:
                 return {
                            'message': f'{val} is not a valid IP or Domain, please try again'

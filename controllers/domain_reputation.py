@@ -56,6 +56,7 @@ class DomainReputation(Resource):
 
                 # calling api with retries and backoff_factor
                 session = retry_session()
+                # we should be using whoisxml API for domain reputation instead of threatintelligenceplatform
                 resp = session.get(f"https://api.threatintelligenceplatform.com/v1/reputation?domainName="
                                    f"{val}&mode=fast&apiKey={os.environ.get('API_KEY_THREAT_INTELLIGENCE')}")
 
@@ -64,7 +65,7 @@ class DomainReputation(Resource):
 
                     list_scans['domainReputation'] = [out]
                 else:
-                    list_scans['domainReputation'] = 'Currently unavailable'
+                    list_scans['domainReputation'] = ['Currently unavailable']
             else:
                 return {
                            'message': f'{val} is not a valid IP or Domain, please try again'

@@ -65,7 +65,7 @@ class InfrastructureAnalysis(Resource):
 
                     list_scans['infrastructureAnalysis'] = out
                 else:
-                    list_scans['infrastructureAnalysis'] = 'Currently unavailable'
+                    list_scans['infrastructureAnalysis'] = ['Currently unavailable']
             else:
                 return {
                            'message': f'{val} is not a valid IP or Domain, please try again'

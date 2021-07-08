@@ -65,7 +65,7 @@ class SSLCertificatesChain(Resource):
 
                     list_scans['sslCertificatesChain'] = out
                 else:
-                    list_scans['sslCertificatesChain'] = 'Currently unavailable'
+                    list_scans['sslCertificatesChain'] = ['Currently unavailable']
             else:
                 return {
                            'message': f'{val} is not a valid IP or Domain, please try again'
